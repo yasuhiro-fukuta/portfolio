@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>木曽路ダウンヒル — Kiso Valley E-bike Downhill</title>
+<style>
+  :root {
+    --paper: #f5f1e8;
+    --ink: #2b2a26;
+    --moss: #5c6b4a;
+    --cedar: #7a5c44;
+    --rust: #a8552f;
+    --gold: #c9a227;
+    --river: #4a7c8c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    background: var(--paper);
+    box-shadow: 0 0 60px rgba(0,0,0,.6);
+    max-width: 100%;
+    max-height: 100%;
+  }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game"></canvas></div>
+<script>
+"use strict";
+
+/* ================= 基本設定 ================= */
+const GAME_W = 480, GAME_H = 720;
+const ROAD_W = 300;                       // 道路幅(px)
+const GOAL_KM = 50;                       // 薮原→三留野
+const PLAYER_Y = GAME_H - 150;
+
+const COLORS = {
+  paper: "#f5f1e8", ink: "#2b2a26", moss: "#5c6b4a", mossDark: "#46543a",
+  cedar: "#7a5c44", rust: "#a8552f", gold: "#c9a227", river: "#4a7c8c",
+  road: "#8d8577", roadEdge: "#6e675c", line: "#d8d2c4",
+};
+
+// Plan C の実ルート宿場チェックポイント
+const CHECKPOINTS = [
+  { km: 0,  name: "薮原宿" },
+  { km: 12, name: "木曽福島" },
+  { km: 22, name: "上松宿" },
+  { km: 33, name: "須原宿" },
+  { km: 41, name: "野尻宿" },
+  { km: 50, name: "三留野宿" },
+];
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = GAME_W;
+canvas.height = GAME_H;
+
+function fitCanvas() {
+  const s = Math.min(innerWidth / GAME_W, innerHeight / GAME_H);
+  canvas.style.width  = Math.floor(GAME_W * s) + "px";
+  canvas.style.height = Math.floor(GAME_H * s) + "px";
+}
+addEventListener("resize", fitCanvas);
+fitCanvas();
+
+/* ================= 状態 ================= */
+const S_TITLE = 0, S_PLAY = 1, S_OVER = 2, S_GOAL = 3, S_PAUSE = 4;
+let state = S_TITLE;
+
+let player, obstacles, pickups, trees, particles;
+let dist, speed, score, hearts, invincible, spawnTimer, pickupTimer, treeTimer;
+let checkpointFlash, lastCheckpoint, shakeTime;
+let best = 0;
+try { best = Number(localStorage.getItem("kiso-downhill-best")) || 0; } catch (e) {}
+
+function reset() {
+  player = { x: GAME_W / 2, vx: 0, lean: 0 };
+  obstacles = [];
+  pickups = [];
+  trees = [];
+  particles = [];
+  dist = 0;                // km
+  speed = 260;             // px/s (画面スクロール速度)
+  score = 0;
+  hearts = 3;
+  invincible = 0;
+  spawnTimer = 1.2;
+  pickupTimer = 3.0;
+  treeTimer = 0;
+  checkpointFlash = 0;
+  lastCheckpoint = 0;
+  shakeTime = 0;
+  // 初期の並木を敷いておく
+  for (let y = 0; y < GAME_H; y += 46) spawnTree(y);
+}
+
+/* ================= 入力 ================= */
+const keys = {};
+addEventListener("keydown", (e) => {
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," "].includes(e.key)) e.preventDefault();
+  keys[e.key] = true;
+  if (e.key === " " || e.key === "Enter") action();
+  if ((e.key === "p" || e.key === "P" || e.key === "Escape") && (state === S_PLAY || state === S_PAUSE)) {
+    state = state === S_PLAY ? S_PAUSE : S_PLAY;
+  }
+});
+addEventListener("keyup", (e) => { keys[e.key] = false; });
+
+// タッチ: 画面の左右半分で操作、タップでスタート
+let touchX = null;
+canvas.addEventListener("pointerdown", (e) => {
+  const r = canvas.getBoundingClientRect();
+  touchX = (e.clientX - r.left) / r.width * GAME_W;
+  action();
+});
+canvas.addEventListener("pointermove", (e) => {
+  if (touchX === null) return;
+  const r = canvas.getBoundingClientRect();
+  touchX = (e.clientX - r.left) / r.width * GAME_W;
+});
+addEventListener("pointerup", () => { touchX = null; });
+addEventListener("pointercancel", () => { touchX = null; });
+
+function action() {
+  if (state === S_TITLE || state === S_OVER || state === S_GOAL) {
+    reset();
+    state = S_PLAY;
+  }
+}
+
+/* ================= スポーン ================= */
+const roadL = () => (GAME_W - ROAD_W) / 2;
+const roadR = () => (GAME_W + ROAD_W) / 2;
+
+function spawnTree(y = -60) {
+  const left = Math.random() < 0.5;
+  const margin = 14 + Math.random() * ((GAME_W - ROAD_W) / 2 - 40);
+  trees.push({
+    x: left ? margin + 12 : GAME_W - margin - 12,
+    y,
+    r: 14 + Math.random() * 12,
+    tone: Math.random(),
+  });
+}
+
+function spawnObstacle() {
+  const roll = Math.random();
+  const x = roadL() + 30 + Math.random() * (ROAD_W - 60);
+  if (roll < 0.45) {
+    obstacles.push({ type: "rock", x, y: -40, w: 34, h: 30 });
+  } else if (roll < 0.75) {
+    obstacles.push({ type: "log", x: roadL() + ROAD_W / 2, y: -40, w: 110 + Math.random() * 60, h: 22 });
+  } else {
+    // 猿: 左右にふらふら動く
+    obstacles.push({ type: "monkey", x, y: -40, w: 30, h: 32, t: Math.random() * 6.28, amp: 40 + Math.random() * 50 });
+  }
+}
+
+function spawnPickup() {
+  const x = roadL() + 30 + Math.random() * (ROAD_W - 60);
+  const type = Math.random() < 0.85 ? "mochi" : "onsen";
+  pickups.push({ type, x, y: -30, r: 15, t: 0 });
+}
+
+function burst(x, y, color, n = 10) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 160;
+    particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.6, color });
+  }
+}
+
+/* ================= 更新 ================= */
+function update(dt) {
+  if (state !== S_PLAY) return;
+
+  // 速度は距離に応じて上がる
+  const kmPerSec = (speed / 3600) * 1.15;   // 演出用の換算
+  dist += kmPerSec * dt;
+  speed = 260 + Math.min(240, dist * 8);
+  score += dt * 10;
+
+  // 操作
+  const accel = 1400, maxVx = 340;
+  let dir = 0;
+  if (keys["ArrowLeft"] || keys["a"] || keys["A"]) dir -= 1;
+  if (keys["ArrowRight"] || keys["d"] || keys["D"]) dir += 1;
+  if (touchX !== null) dir = touchX < player.x - 10 ? -1 : touchX > player.x + 10 ? 1 : 0;
+  player.vx += dir * accel * dt;
+  if (dir === 0) player.vx *= Math.pow(0.0008, dt);   // 減衰
+  player.vx = Math.max(-maxVx, Math.min(maxVx, player.vx));
+  player.x += player.vx * dt;
+  player.lean += ((player.vx / maxVx) * 0.45 - player.lean) * Math.min(1, dt * 10);
+
+  // 路肩に出たら減速&ガタガタ
+  const pad = 16;
+  if (player.x < roadL() + pad) { player.x = roadL() + pad; player.vx = Math.max(0, player.vx); }
+  if (player.x > roadR() - pad) { player.x = roadR() - pad; player.vx = Math.min(0, player.vx); }
+
+  // スポーン
+  spawnTimer -= dt;
+  if (spawnTimer <= 0) {
+    spawnObstacle();
+    spawnTimer = Math.max(0.42, 1.25 - dist * 0.014) * (0.7 + Math.random() * 0.6);
+  }
+  pickupTimer -= dt;
+  if (pickupTimer <= 0) { spawnPickup(); pickupTimer = 2.2 + Math.random() * 2.5; }
+  treeTimer -= dt;
+  if (treeTimer <= 0) { spawnTree(); treeTimer = 46 / speed; }
+
+  // 移動
+  for (const t of trees) t.y += speed * dt * 0.92;
+  for (const o of obstacles) {
+    o.y += speed * dt;
+    if (o.type === "monkey") {
+      o.t += dt * 3;
+      o.x += Math.cos(o.t) * o.amp * dt;
+      o.x = Math.max(roadL() + 20, Math.min(roadR() - 20, o.x));
+    }
+  }
+  for (const p of pickups) { p.y += speed * dt; p.t += dt; }
+  for (const p of particles) {
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; p.life -= dt;
+  }
+  trees = trees.filter(t => t.y < GAME_H + 80);
+  obstacles = obstacles.filter(o => o.y < GAME_H + 60);
+  pickups = pickups.filter(p => p.y < GAME_H + 40);
+  particles = particles.filter(p => p.life > 0);
+
+  // 当たり判定
+  invincible = Math.max(0, invincible - dt);
+  const px = player.x, py = PLAYER_Y;
+  if (invincible <= 0) {
+    for (const o of obstacles) {
+      if (Math.abs(o.x - px) < o.w / 2 + 12 && Math.abs(o.y - py) < o.h / 2 + 16) {
+        hearts--;
+        invincible = 1.6;
+        shakeTime = 0.35;
+        burst(px, py, COLORS.rust, 14);
+        if (hearts <= 0) {
+          state = S_OVER;
+          if (score > best) {
+            best = Math.floor(score);
+            try { localStorage.setItem("kiso-downhill-best", String(best)); } catch (e) {}
+          }
+        }
+        break;
+      }
+    }
+  }
+  for (const p of pickups) {
+    if (Math.abs(p.x - px) < p.r + 14 && Math.abs(p.y - py) < p.r + 18) {
+      p.y = GAME_H + 999;
+      if (p.type === "mochi") { score += 100; burst(p.x, py, COLORS.gold, 10); }
+      else { hearts = Math.min(3, hearts + 1); burst(p.x, py, COLORS.river, 12); }
+    }
+  }
+
+  // チェックポイント
+  for (const c of CHECKPOINTS) {
+    if (c.km > lastCheckpoint && dist >= c.km) {
+      lastCheckpoint = c.km;
+      checkpointFlash = 2.2;
+      score += 250;
+    }
+  }
+  checkpointFlash = Math.max(0, checkpointFlash - dt);
+  shakeTime = Math.max(0, shakeTime - dt);
+
+  // ゴール
+  if (dist >= GOAL_KM) {
+    dist = GOAL_KM;
+    score += 1000 + hearts * 500;
+    state = S_GOAL;
+    if (score > best) {
+      best = Math.floor(score);
+      try { localStorage.setItem("kiso-downhill-best", String(best)); } catch (e) {}
+    }
+  }
+}
+
+/* ================= 描画 ================= */
+let scrollY = 0;
+
+function draw(dt) {
+  ctx.save();
+  if (shakeTime > 0) {
+    ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+  }
+
+  // 背景(山あいの緑)
+  ctx.fillStyle = COLORS.moss;
+  ctx.fillRect(-10, -10, GAME_W + 20, GAME_H + 20);
+  ctx.fillStyle = COLORS.mossDark;
+  ctx.fillRect(-10, -10, 30, GAME_H + 20);
+  ctx.fillRect(GAME_W - 20, -10, 30, GAME_H + 20);
+
+  // 道路
+  ctx.fillStyle = COLORS.road;
+  ctx.fillRect(roadL(), -10, ROAD_W, GAME_H + 20);
+  ctx.fillStyle = COLORS.roadEdge;
+  ctx.fillRect(roadL() - 5, -10, 5, GAME_H + 20);
+  ctx.fillRect(roadR(), -10, 5, GAME_H + 20);
+
+  // センターライン(スクロール)
+  if (state === S_PLAY) scrollY = (scrollY + speed * dt) % 80;
+  ctx.fillStyle = COLORS.line;
+  for (let y = -80 + scrollY; y < GAME_H + 80; y += 80) {
+    ctx.fillRect(GAME_W / 2 - 4, y, 8, 40);
+  }
+
+  // 川(左端にちら見え)
+  ctx.fillStyle = COLORS.river;
+  ctx.globalAlpha = 0.5;
+  ctx.fillRect(0, -10, 16, GAME_H + 20);
+  ctx.globalAlpha = 1;
+
+  // 並木
+  for (const t of trees) drawTree(t);
+
+  // ピックアップ
+  for (const p of pickups) drawPickup(p);
+
+  // 障害物
+  for (const o of obstacles) drawObstacle(o);
+
+  // プレイヤー
+  if (state !== S_TITLE) drawPlayer();
+
+  // パーティクル
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life / 0.6);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // UI
+  if (state === S_TITLE) drawTitle();
+  else drawHUD();
+  if (state === S_OVER) drawOver();
+  if (state === S_GOAL) drawGoal();
+  if (state === S_PAUSE) drawPauseOverlay();
+}
+
+function drawTree(t) {
+  ctx.fillStyle = COLORS.cedar;
+  ctx.fillRect(t.x - 3, t.y, 6, t.r);
+  ctx.fillStyle = t.tone < 0.5 ? COLORS.mossDark : "#3d4a33";
+  ctx.beginPath();
+  ctx.moveTo(t.x, t.y - t.r * 1.6);
+  ctx.lineTo(t.x - t.r * 0.8, t.y + t.r * 0.3);
+  ctx.lineTo(t.x + t.r * 0.8, t.y + t.r * 0.3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawObstacle(o) {
+  if (o.type === "rock") {
+    ctx.fillStyle = "#75706a";
+    ctx.beginPath();
+    ctx.moveTo(o.x - o.w / 2, o.y + o.h / 2);
+    ctx.lineTo(o.x - o.w / 4, o.y - o.h / 2);
+    ctx.lineTo(o.x + o.w / 3, o.y - o.h / 3);
+    ctx.lineTo(o.x + o.w / 2, o.y + o.h / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#8d8880";
+    ctx.fillRect(o.x - o.w / 6, o.y - o.h / 6, o.w / 4, o.h / 4);
+  } else if (o.type === "log") {
+    ctx.fillStyle = COLORS.cedar;
+    ctx.fillRect(o.x - o.w / 2, o.y - o.h / 2, o.w, o.h);
+    ctx.fillStyle = "#5d4634";
+    for (let i = -o.w / 2 + 10; i < o.w / 2; i += 22) {
+      ctx.fillRect(o.x + i, o.y - o.h / 2 + 3, 3, o.h - 6);
+    }
+    ctx.fillStyle = "#c9b79c";
+    ctx.beginPath();
+    ctx.arc(o.x - o.w / 2 + 2, o.y, o.h / 2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (o.type === "monkey") {
+    // 猿
+    ctx.fillStyle = "#8a6d55";
+    ctx.beginPath();
+    ctx.arc(o.x, o.y + 6, 12, 0, Math.PI * 2);   // 体
+    ctx.arc(o.x, o.y - 10, 9, 0, Math.PI * 2);   // 頭
+    ctx.fill();
+    ctx.fillStyle = "#e8d5c0";
+    ctx.beginPath();
+    ctx.arc(o.x, o.y - 8, 5.5, 0, Math.PI * 2);  // 顔
+    ctx.fill();
+    ctx.fillStyle = COLORS.ink;
+    ctx.fillRect(o.x - 3, o.y - 11, 2, 2);
+    ctx.fillRect(o.x + 1, o.y - 11, 2, 2);
+    // しっぽ
+    ctx.strokeStyle = "#8a6d55";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(o.x + 12, o.y + 8, 8, Math.PI * 0.2, Math.PI * 1.2);
+    ctx.stroke();
+  }
+}
+
+function drawPickup(p) {
+  const bob = Math.sin(p.t * 5) * 3;
+  if (p.type === "mochi") {
+    // 五平餅
+    ctx.fillStyle = "#9b7b52";
+    ctx.fillRect(p.x - 2, p.y + bob, 4, 20);
+    ctx.fillStyle = "#c9954f";
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y - 8 + bob, 11, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#a8552f";
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y - 8 + bob, 7, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // 温泉マーク(ハート回復)
+    ctx.fillStyle = COLORS.river;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y + bob, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.paper;
+    ctx.font = "bold 16px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("♨", p.x, p.y + bob + 1);
+  }
+}
+
+function drawPlayer() {
+  const x = player.x, y = PLAYER_Y;
+  if (invincible > 0 && Math.floor(invincible * 12) % 2 === 0) return;  // 点滅
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(player.lean);
+  // 影
+  ctx.fillStyle = "rgba(0,0,0,.18)";
+  ctx.beginPath();
+  ctx.ellipse(0, 22, 16, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // タイヤ
+  ctx.fillStyle = COLORS.ink;
+  ctx.fillRect(-4, -26, 8, 14);
+  ctx.fillRect(-4, 12, 8, 14);
+  // フレーム
+  ctx.strokeStyle = COLORS.rust;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.lineTo(0, 18);
+  ctx.stroke();
+  // ライダー(体・頭・ヘルメット)
+  ctx.fillStyle = COLORS.moss;
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 10, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = COLORS.gold;
+  ctx.beginPath();
+  ctx.arc(0, -10, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = COLORS.ink;
+  ctx.beginPath();
+  ctx.arc(0, -12, 5, Math.PI, 0);
+  ctx.fill();
+  // ハンドル
+  ctx.strokeStyle = COLORS.ink;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-12, -16);
+  ctx.lineTo(12, -16);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ================= UI ================= */
+function panel(x, y, w, h) {
+  ctx.fillStyle = "rgba(43,42,38,.82)";
+  roundRect(x, y, w, h, 14);
+  ctx.fill();
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function text(str, x, y, size, color, align = "center", weight = "bold") {
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px "Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif`;
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.fillText(str, x, y);
+}
+
+function drawHUD() {
+  // 進行バー
+  const barY = 26, barW = GAME_W - 120;
+  ctx.fillStyle = "rgba(43,42,38,.7)";
+  roundRect(30, barY - 8, barW, 16, 8);
+  ctx.fill();
+  ctx.fillStyle = COLORS.gold;
+  roundRect(30, barY - 8, Math.max(16, barW * (dist / GOAL_KM)), 16, 8);
+  ctx.fill();
+  for (const c of CHECKPOINTS) {
+    const cx = 30 + barW * (c.km / GOAL_KM);
+    ctx.fillStyle = dist >= c.km ? COLORS.paper : "rgba(245,241,232,.45)";
+    ctx.beginPath();
+    ctx.arc(cx, barY, 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  text(`${dist.toFixed(1)} km`, GAME_W - 50, barY, 15, COLORS.paper, "center");
+
+  // スコアとハート
+  text(`SCORE ${Math.floor(score)}`, 30, 58, 16, COLORS.paper, "left");
+  for (let i = 0; i < 3; i++) {
+    text(i < hearts ? "♥" : "♡", GAME_W - 30 - i * 26, 58, 20, i < hearts ? COLORS.rust : "rgba(245,241,232,.5)");
+  }
+
+  // チェックポイント通過表示
+  if (checkpointFlash > 0) {
+    const c = CHECKPOINTS.find(c => c.km === lastCheckpoint);
+    if (c && c.km < GOAL_KM) {
+      ctx.globalAlpha = Math.min(1, checkpointFlash);
+      panel(GAME_W / 2 - 120, 96, 240, 52);
+      text(`${c.name} 通過!  +250`, GAME_W / 2, 122, 19, COLORS.gold);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+function drawTitle() {
+  ctx.fillStyle = "rgba(43,42,38,.55)";
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  panel(40, 130, GAME_W - 80, 400);
+  text("木曽路ダウンヒル", GAME_W / 2, 190, 36, COLORS.paper);
+  text("— Kiso Valley E-bike Downhill —", GAME_W / 2, 228, 14, COLORS.gold);
+  text("薮原から三留野まで、木曽川ぞい 50 km。", GAME_W / 2, 285, 15, COLORS.paper);
+  text("岩・丸太・猿をよけて走りきろう。", GAME_W / 2, 310, 15, COLORS.paper);
+  text("五平餅 +100点 / ♨ でハート回復", GAME_W / 2, 348, 14, COLORS.gold);
+  text("操作: ← → キー or 画面タッチ", GAME_W / 2, 400, 14, COLORS.paper);
+  text("P キーで一時停止", GAME_W / 2, 424, 13, "rgba(245,241,232,.7)");
+  if (best > 0) text(`BEST SCORE  ${best}`, GAME_W / 2, 462, 14, COLORS.gold);
+  if (Math.floor(performance.now() / 600) % 2 === 0) {
+    text("スペースキー / タップ でスタート", GAME_W / 2, 500, 16, COLORS.paper);
+  }
+  text("Dive into the local.", GAME_W / 2, GAME_H - 40, 13, "rgba(245,241,232,.85)", "center", "italic");
+}
+
+function drawOver() {
+  ctx.fillStyle = "rgba(43,42,38,.55)";
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  panel(60, 220, GAME_W - 120, 280);
+  text("転んでしまった…", GAME_W / 2, 270, 28, COLORS.paper);
+  text(`走行距離  ${dist.toFixed(1)} km`, GAME_W / 2, 330, 18, COLORS.paper);
+  text(`SCORE  ${Math.floor(score)}`, GAME_W / 2, 362, 18, COLORS.gold);
+  text(`BEST  ${best}`, GAME_W / 2, 392, 14, "rgba(245,241,232,.8)");
+  if (Math.floor(performance.now() / 600) % 2 === 0) {
+    text("スペースキー / タップ でリトライ", GAME_W / 2, 452, 15, COLORS.paper);
+  }
+}
+
+function drawGoal() {
+  ctx.fillStyle = "rgba(43,42,38,.55)";
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  panel(50, 200, GAME_W - 100, 320);
+  text("三留野宿 とうちゃく!", GAME_W / 2, 252, 30, COLORS.gold);
+  text("世界一気持ちいい 50 km、完走!", GAME_W / 2, 300, 16, COLORS.paper);
+  text(`SCORE  ${Math.floor(score)}`, GAME_W / 2, 350, 20, COLORS.gold);
+  text(`残りハート ${hearts} × 500 ボーナス`, GAME_W / 2, 382, 14, COLORS.paper);
+  text(`BEST  ${best}`, GAME_W / 2, 410, 14, "rgba(245,241,232,.8)");
+  if (Math.floor(performance.now() / 600) % 2 === 0) {
+    text("スペースキー / タップ でもう一度", GAME_W / 2, 468, 15, COLORS.paper);
+  }
+}
+
+function drawPauseOverlay() {
+  ctx.fillStyle = "rgba(43,42,38,.6)";
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  text("一時停止中", GAME_W / 2, GAME_H / 2 - 10, 28, COLORS.paper);
+  text("P キーで再開", GAME_W / 2, GAME_H / 2 + 30, 15, "rgba(245,241,232,.8)");
+}
+
+/* ================= メインループ ================= */
+reset();
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  update(dt);
+  draw(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
