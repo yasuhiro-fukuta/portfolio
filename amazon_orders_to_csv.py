@@ -24,6 +24,17 @@ amazon.co.jp の注文履歴から、指定「年・月」の経理用一覧を 
 【設計】公式APIは無いため、ログイン済みセッションで領収書 print.html を
         HTTP取得してパースする純コード(RPA非依存)。HTMLは変わり得る。
 
+【2026-08 修正2】注文ID一覧がゴミ数件しか取れない問題への対応:
+  - 一覧ページの生数字列フォールバック(ID_RAW)を廃止。orderID=リンクが無いページで
+    電話番号やトークンを注文番号と誤検出し(例: 000-0000000-xxxxxxx)、しかも
+    「1件でも取れたら次のURLを試さない」ため復旧不能だった。
+  - 新UI対応: 「注文番号 249-xxxxxxx-xxxxxxx」のラベル付きテキストからも抽出。
+    orderID= はURLエンコード(%3D)やorderId表記も許容。
+  - URLテンプレートは全部を順に走査してマージ(途中で打ち切らない)。
+    「過去3か月(months-3)」フィルタのURLも追加。
+  - IDが1件も取れないページは ./invoices/orderlist_*.html に保存し、
+    ログインページへ飛ばされた形跡があれば「curl.txt取り直し」を明示警告。
+
 【2026-08 修正】直近月(7月)分が0件になる問題への対応:
   - 「領収書」の文言が本文に無いと全skipするゲートを撤廃。新形式の明細ページでは
     文言が変わるため、エラーページ検出＋注文番号/注文日の有無で判定する。
@@ -70,8 +81,10 @@ BASE = "https://www.amazon.co.jp"
 # ② 正規表現
 # ==========================================================================
 ORDER_ID = r"\d{3}-\d{7}-\d{7}"
-ID_IN_LINK = re.compile(r"order[Ii][Dd]=(" + ORDER_ID + r")")
-ID_RAW = re.compile(r"\b(" + ORDER_ID + r")\b")
+ID_IN_LINK = re.compile(r"order[Ii][Dd](?:=|%3D)(" + ORDER_ID + r")")
+# 新UI: 「注文番号 249-xxxxxxx-xxxxxxx」のラベル付きテキスト(タグ跨ぎ許容)
+ID_LABELED = re.compile(
+    r"注文番号\s*(?:<[^>]*>\s*)*[:：#＃]?\s*(?:<[^>]*>\s*)*(" + ORDER_ID + r")")
 SESSION_ID_RE = re.compile(r"session-id=(" + ORDER_ID + r")")
 
 # 注文日: 新旧レイアウトの表記ゆれに対応。ラベル付きを優先し、
@@ -208,26 +221,42 @@ def polite_sleep() -> None:
     time.sleep(random.uniform(SLEEP_MIN, SLEEP_MAX))
 
 
+def _save_debug_html(fname: str, html: str) -> None:
+    if not SAVE_INVOICE_HTML:
+        return
+    os.makedirs(INVOICE_DIR, exist_ok=True)
+    with open(os.path.join(INVOICE_DIR, fname), "w", encoding="utf-8") as f:
+        f.write(html)
+
+
 def collect_order_ids(session: requests.Session, year: int, session_id: str) -> list[str]:
-    """注文ID一覧を収集。orderID= リンクを優先抽出し、session-id等の誤検出を排除。"""
+    """注文ID一覧を収集。orderID=リンクと「注文番号」ラベルの2系統で厳密に抽出する。
+    (生数字列の総当たりはゴミIDを拾うため廃止。全URLを走査して結果をマージ)"""
     found, seen = [], {session_id} if session_id else set()
     templates = [
-        BASE + "/your-orders/orders?timeFilter=year-{year}&startIndex={idx}",
-        BASE + "/gp/css/order-history?orderFilter=year-{year}&startIndex={idx}",
+        ("your-orders_year",   BASE + "/your-orders/orders?timeFilter=year-{year}&startIndex={idx}"),
+        ("your-orders_3months", BASE + "/your-orders/orders?timeFilter=months-3&startIndex={idx}"),
+        ("order-history_year", BASE + "/gp/css/order-history?orderFilter=year-{year}&startIndex={idx}"),
     ]
-    for tmpl in templates:
+    for name, tmpl in templates:
+        print(f"  ▼ {name}")
         empty = 0
         for page in range(MAX_LIST_PAGES):
             url = tmpl.format(year=year, idx=page * 10)
             r = session.get(url, timeout=30)
             check_blocked(r.text)
-            ids = ID_IN_LINK.findall(r.text)         # 第一候補: orderID= 限定
-            if not ids:                              # フォールバック: 生正規表現
-                ids = ID_RAW.findall(r.text)
-            new = [i for i in dict.fromkeys(ids) if i not in seen]
+            ids = ID_IN_LINK.findall(r.text) + ID_LABELED.findall(r.text)
+            if not ids:
+                # 抽出0件のページは調査用に保存。ログイン画面の形跡もチェック。
+                _save_debug_html(f"orderlist_{name}_p{page+1}.html", r.text)
+                if any(s in r.text for s in BLOCKED_SIGNS):
+                    print("    【警告】ログインページへ飛ばされている可能性大。"
+                          "curl.txt を取り直してください。")
+            new = [i for i in dict.fromkeys(ids)
+                   if i not in seen and not i.startswith("000-")]
             for i in new:
                 seen.add(i); found.append(i)
-            print(f"  一覧 page {page+1}: +{len(new)}件 (累計 {len(found)})")
+            print(f"    一覧 page {page+1}: +{len(new)}件 (累計 {len(found)})")
             if not new:
                 empty += 1
                 if empty >= 2:
@@ -235,8 +264,6 @@ def collect_order_ids(session: requests.Session, year: int, session_id: str) -> 
             else:
                 empty = 0
             polite_sleep()
-        if found:
-            break
     return found
 
 
@@ -328,7 +355,10 @@ def main() -> None:
     order_ids = collect_order_ids(session, YEAR, curl["session_id"])
     print(f"  → {len(order_ids)} 件\n")
     if not order_ids:
-        sys.exit("注文IDが0件。cookie失効か年指定ミスの可能性。curl.txt を取り直してください。")
+        sys.exit(
+            "注文IDが0件。cookie失効の可能性が高いです。curl.txt を取り直してください。\n"
+            f"  一覧ページの実物を ./{INVOICE_DIR}/orderlist_*.html に保存済み。\n"
+            "  ブラウザで開いて、ログイン画面/注文一覧のどちらが写っているか確認できます。")
     if LIMIT is not None:
         order_ids = order_ids[:LIMIT]
         print(f"  ※ LIMIT={LIMIT} のため先頭 {len(order_ids)} 件のみ処理（動作確認モード）\n")
