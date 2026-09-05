@@ -23,7 +23,9 @@ function selfTest() {
     (String(got) === String(want)) ? ok(`${label} = ${got}`)
                                    : ng(`${label} = ${got} (期待 ${want})`);
 
-  Logger.log('======== 柏屋 予約同期 v2.10 自己診断 ========');
+  const g = (typeof globalThis !== 'undefined') ? globalThis : this;
+
+  Logger.log('======== 柏屋 予約同期 v2.10.1 自己診断 ========');
 
   // ── 1. ファイルが全部入っているか ──────────────────────────
   Logger.log('\n[1] 必要な関数が揃っているか');
@@ -36,13 +38,69 @@ function selfTest() {
     'toHalfWidth', 'addDaysStr', 'numOrZero',                    // Utils.gs
     'syncOptions', 'runBatch', 'diagnoseLodgifyMatch',
   ];
-  const g = (typeof globalThis !== 'undefined') ? globalThis : this;
   const missing = needed.filter(n => typeof g[n] !== 'function');
   if (missing.length) {
     ng(`未定義の関数: ${missing.join(', ')}`);
     Logger.log('       → 該当ファイルの貼り付け漏れです。特に GuestCount.gs は新規ファイルです。');
   } else {
     ok(`${needed.length} 個すべて定義済み`);
+  }
+
+  // ── 1b. 「新しい版」が実際に有効になっているか ─────────────────
+  //  ★ここが v2.10.1 の追加。
+  //    [1] は関数が「存在するか」しか見ておらず、
+  //    旧ファイルが残っていて同名関数を後勝ちで上書きしている場合を
+  //    見逃していた。実際に「selfTest は全部OKなのに清掃ボードが
+  //    書き換わらない」という取りこぼしが起きた。
+  //
+  //    原因は buildCleaningBoard。selfTest は mergeLodgifyStays() を
+  //    自分で呼ぶので合流結果が出るが、旧 buildCleaningBoard は
+  //    mergeLodgifyStays を呼ばないため、実際の書き込みでは
+  //    直予約が合流しないまま出力されていた。
+  //
+  //    関数のソースを直接見て、新版の目印が入っているかを確認する。
+  Logger.log('\n[1b] 新しい版が有効になっているか (関数のソースを確認)');
+  //  目印は「呼び出しの形」で持つ。単なる単語だと、コメントに
+  //  その語が出てくるだけの旧版を誤って新版と判定してしまう。
+  const VERSION_MARKS = [
+    ['buildCleaningBoard',   'mergeLodgifyStays(stays',   'CleaningBoard.gs'],
+    ['renderCleaningRows',   'byArrive[',                 'CleaningBoard.gs'],
+    ['applyLodgifyPeople',   'findLodgifyBooking(list',   'CleaningBoard.gs'],
+    ['applyOptionsInfo',     'addDaysStr(s.checkin, 1)',  'CleaningBoard.gs'],
+    ['syncOptions',          'backfillOptionGuests(optSh','OptionSync.gs'],
+    ['syncLodgifyBookings',  'lodgifyRowKey(',            'LodgifyFetcher.gs'],
+    ['numOrZero',            'toHalfWidth(',              'Utils.gs'],
+  ];
+  const stale = [];
+  VERSION_MARKS.forEach(([fn, mark, file]) => {
+    const f = g[fn];
+    if (typeof f !== 'function') { ng(`${fn} が未定義`); return; }
+    const src = String(f);
+    if (src.indexOf(mark) >= 0) {
+      ok(`${fn} は新版`);
+    } else {
+      ng(`${fn} が【旧版】のまま (${file} の古いコピーが残っています)`);
+      stale.push(file);
+    }
+  });
+
+  // runBatch は「Lodgify取得 → フォーム同期」の順になっているか
+  if (typeof g.runBatch === 'function') {
+    const rb = String(g.runBatch);
+    const iL = rb.indexOf('syncLodgifyBookings');
+    const iO = rb.indexOf('syncOptions');
+    (iL >= 0 && iO >= 0 && iL < iO)
+      ? ok('runBatch の順序 (Lodgify取得 → フォーム同期)')
+      : ng('runBatch が旧順序 (フォーム同期が先) のまま → Main.gs が古い');
+  }
+
+  if (stale.length) {
+    Logger.log('       ────────────────────────────────────────────');
+    Logger.log('       !! 対処: Apps Script エディタの左側ファイル一覧を見て、');
+    Logger.log(`          ${[...new Set(stale)].join(' / ')} が二重に無いか確認してください。`);
+    Logger.log('          (コピー.gs / CleaningBoard2.gs / 無題.gs などの名前で');
+    Logger.log('           古い版が残っていると、そちらが後勝ちで有効になります)');
+    Logger.log('       ────────────────────────────────────────────');
   }
 
   // ── 2. 旧バージョンの関数が残っていないか ───────────────────
@@ -164,4 +222,96 @@ function selfTest() {
   Logger.log(`\n======== 結果: OK ${R.ok} / NG ${R.ng} / 注意 ${R.warn} ========`);
   if (R.ng === 0) Logger.log('NG が 0 なら反映は成功しています。');
   return R;
+}
+
+/**
+ * ============================================================
+ *  清掃ボードへの「実際の書き込み」を検証する (v2.10.1 追加)
+ * ============================================================
+ *  selfTest はメモリ上で再現するだけなので、
+ *  「計算は正しいが書き込みが古いコードで走っている」ケースを
+ *  検出できなかった。これは実際にシートを読み → 書き → 読み直す。
+ *
+ *  ★このファイルで唯一シートに書き込む関数。
+ *    ただし書き込むのは buildCleaningBoard と同じ E列以降だけで、
+ *    A〜D列の手動入力には触れない。
+ *
+ *  使い方: この関数を実行してログを見る。
+ *          BEFORE と AFTER が同じなら書き込みが効いていない。
+ */
+function verifyCleaningBoardWrite() {
+  const C = CONFIG.COL_CLEAN;
+  const sh = ensureCleaningSheet();
+
+  // 直予約が入るはずのキーを Lodgify から自動で拾う
+  const bookings = loadLodgifyBookings();
+  const today = fmtDate(todayJst());
+  const targets = [];
+  bookings.filter(b => b.isDirect).forEach(b => {
+    let d = b.checkin, guard = 0;
+    while (d < b.checkout && guard++ < 400) {
+      targets.push({ key: `${d}_${b.room}`, name: b.name, people: b.people, future: d >= today });
+      d = addDaysStr(d, 1);
+    }
+  });
+  if (!targets.length) {
+    Logger.log('直予約が1件もありません。検証対象なし。');
+    return;
+  }
+
+  const snapshot = () => {
+    const last = sh.getLastRow();
+    if (last <= 1) return {};
+    const vals = sh.getRange(2, C.KEY, last - 1, C.UPDATED_AT - C.KEY + 1).getValues();
+    const m = {};
+    vals.forEach(row => {
+      const k = String(row[0] || '').trim();
+      if (k) m[k] = {
+        state: row[C.STATE - C.KEY],
+        people: row[C.GUESTS - C.KEY],
+        name: row[C.GUEST_NAME - C.KEY],
+        note: row[C.NOTE - C.KEY],
+        updated: row[C.UPDATED_AT - C.KEY],
+      };
+    });
+    return m;
+  };
+
+  Logger.log('======== 清掃ボード 書き込み検証 ========');
+  const before = snapshot();
+  Logger.log('\n--- BEFORE (現在のシートの中身) ---');
+  targets.forEach(t => {
+    const r = before[t.key];
+    Logger.log(`  ${t.key}  ${r ? `状態=${r.state} 人数=${r.people||'-'} 氏名=${r.name||'-'} 備考=${r.note||'-'}` : '(行なし = ボードの期間外)'}`);
+  });
+
+  Logger.log('\n--- buildCleaningBoard() を実行 ---');
+  const n = buildCleaningBoard();
+  Logger.log(`  ${n} 行を書き込みました`);
+  SpreadsheetApp.flush();
+
+  const after = snapshot();
+  Logger.log('\n--- AFTER (書き込み後) ---');
+  let fixed = 0, still = 0, outOfRange = 0;
+  targets.forEach(t => {
+    const r = after[t.key];
+    if (!r) {
+      Logger.log(`  ${t.key}  (行なし = CONFIG.CLEANING.DAYS_AHEAD の範囲外)`);
+      outOfRange++;
+      return;
+    }
+    const okRow = String(r.name || '').indexOf(t.name) >= 0;
+    Logger.log(`  ${okRow ? 'OK ' : 'NG '} ${t.key}  状態=${r.state} 人数=${r.people||'-'} ` +
+               `氏名=${r.name||'-'} 備考=${r.note||'-'}`);
+    if (okRow) fixed++; else still++;
+  });
+
+  Logger.log(`\n======== 結果: 反映済み ${fixed} / 未反映 ${still} / 期間外 ${outOfRange} ========`);
+  if (still > 0) {
+    Logger.log('!! 未反映がある場合、buildCleaningBoard が旧版のままです。');
+    Logger.log('   selfTest の [1b] を確認し、古い CleaningBoard.gs を削除してください。');
+  } else if (fixed > 0) {
+    Logger.log('直予約が清掃ボードに反映されました。');
+  }
+  return { fixed: fixed, still: still, outOfRange: outOfRange };
 }
