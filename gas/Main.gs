@@ -306,6 +306,7 @@ function onOpen() {
     .addItem('🔄 バッチ実行 (runBatch)',            'runBatch')
     .addItem('📥 iCal取得テスト (testFetchOnly)',   'testFetchOnly')
     .addSeparator()
+    .addItem('✅ 反映後の自己診断 (selfTest)',       'selfTest')
     .addItem('🧹 清掃ボードだけ再生成',              'buildCleaningBoard')
     .addItem('🏨 Lodgify取得だけ実行',              'runLodgifySyncOnly')
     .addItem('👥 食事表の人数だけ補完',              'runGuestBackfillOnly')
