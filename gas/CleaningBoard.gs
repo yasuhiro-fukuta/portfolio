@@ -492,10 +492,13 @@ function renderCleaningRows(stays) {
   });
 
   // 開始日は固定。ここが動くと A〜D列の手動列がずれる。
+  //  guard は暴走よけの安全弁。START_DATE は固定で endDs は毎日進むため、
+  //  年が経つほど必要な回数は増える。DAYS_AHEAD を伸ばしたときに
+  //  黙って途中で打ち切られないよう、十分大きくとってある。
   let ds = CL.START_DATE;
   let guard = 0;
 
-  while (ds <= endDs && guard++ < 3000) {
+  while (ds <= endDs && guard++ < 20000) {
     const wd = weekdayJa(isoWeekday(ds));
     const dateStr = ds;
 
@@ -619,7 +622,9 @@ function ensureCleaningSheet() {
 function setupCleaningFormatting() {
   const C = CONFIG.COL_CLEAN;
   const sh = ensureCleaningSheet();
-  const maxRow = 2000;
+  // 固定の 2000 行だと DAYS_AHEAD を伸ばしたときに色の付かない行が
+  // 出るため、実際の行数から決める (少し余裕をみる)。
+  const maxRow = Math.max(sh.getMaxRows(), sh.getLastRow() + 200, 2000);
   const range = sh.getRange(2, 1, maxRow - 1, C.UPDATED_AT);
   const noteRange = sh.getRange(2, C.NOTE, maxRow - 1, 1);
 
