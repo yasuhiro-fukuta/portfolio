@@ -58,6 +58,7 @@ function buildCleaningBoard() {
   applyLodgifyPeople(stays, bookings);
   applyOptionsInfo(stays);
   applyOverride(stays);
+  applyCheckinFormStatus(stays);   // 宿泊者名簿フォームの提出状況
 
   const rows = renderCleaningRows(stays);
   writeCleaningBoard(ss, rows);
@@ -168,9 +169,11 @@ function newStay(o) {
     meal:       '',
     origin:     o.origin || 'iCal',
     notes:      o.notes || [],
-    // Check-In Form (LatestOptions) の記入があったか。
-    // applyOptionsInfo が突合できた時点で true になる。
-    formDone:   false,
+    // Check-In Form (宿泊者名簿) の記入があったか。
+    //   true=提出済み / false=未提出 / null=判定不能
+    // applyCheckinFormStatus() が設定する。
+    // ★食事フォーム (LatestOptions) とは別物なので混同しないこと。
+    formDone:   null,
   };
 }
 
@@ -368,8 +371,6 @@ function applyOptionsInfo(stays) {
       }
     }
     if (!hit) return;
-
-    s.formDone = true;   // Check-In Form の記入あり
 
     if (hit.name && !s.name) s.name = hit.name;
     if (hit.meal) s.meal = hit.meal;
@@ -660,6 +661,9 @@ function computeCheckinFormAlertRows(stays, rows) {
   let n = 0;
   stays.forEach(s => {
     if (!targets[s.checkin]) return;
+    // null = フォームを読めていない (判定不能)。
+    // 誤って全員を未提出扱いにしないよう、赤字は付けない。
+    if (s.formDone === null || s.formDone === undefined) return;
     if (s.formDone) return;
     pending[`${s.checkin}|${s.room}`] = true;
     n++;
@@ -725,6 +729,11 @@ function listPendingCheckinForms() {
   applyLodgifyPeople(stays, bookings);
   applyOptionsInfo(stays);
   applyOverride(stays);
+  const map = applyCheckinFormStatus(stays);
+  if (map === null) {
+    Logger.log('!! Check-In Form を読めていません。dumpCheckinForm() で確認してください。');
+    return 0;
+  }
 
   const A = CONFIG.CHECKIN_FORM_ALERT || {};
   const daysAgo = (A.DAYS_AGO == null) ? 1 : Number(A.DAYS_AGO);

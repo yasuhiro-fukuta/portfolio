@@ -311,6 +311,7 @@ function onOpen() {
     .addItem('🏨 Lodgify取得だけ実行',              'runLodgifySyncOnly')
     .addItem('👥 食事表の人数だけ補完',              'runGuestBackfillOnly')
     .addItem('📋 Check-In Form 未提出を一覧',        'listPendingCheckinForms')
+    .addItem('🔍 Check-In Form 読み込み確認',        'dumpCheckinForm')
     .addItem('🔍 Lodgify レスポンス確認',            'dumpLodgifyBookings')
     .addItem('🩺 直予約・人数の突合診断',            'diagnoseLodgifyMatch')
     .addSeparator()

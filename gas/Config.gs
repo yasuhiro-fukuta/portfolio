@@ -254,13 +254,34 @@ const CONFIG = {
     WRITE_START_COL: 5,
   },
 
+  // ── Check-In Form (宿泊者名簿) の場所 (v2.10.3) ────────────────
+  //  ★食事・オプションの注文フォーム (FormResponses) とは別物。
+  //    回答は別スプレッドシートに溜まる。
+  //      FormResponses … 食事の注文、泉屋送迎・荷物・タクシー等
+  //      Check-In Form … 代表者氏名 / 住所 / 職業 / 電話番号
+  //
+  //  SPREADSHEET_ID は回答スプレッドシートのURLの
+  //    docs.google.com/spreadsheets/d/【ここ】/edit
+  //  の部分。
+  //
+  //  列は見出し名で探すので、フォームに設問を足して列がずれても壊れない。
+  //  見出しを変えたときだけ、下の候補に追記すること。
+  CHECKIN_FORM: {
+    SPREADSHEET_ID: '1IXVZLzJwJeaBG9Zi8xA6P32zK9L5E9h5DVC3ag3qsco',
+    SHEET_NAME:     'Form_Responses',
+    HEADER_CHECKIN: ['Check-in Date', 'Check-in date', 'チェックイン日'],
+    HEADER_ROOM:    ['Room Name', 'Room', '部屋'],
+    HEADER_NAME:    ['Full Name of representative', 'Name', '代表者', '氏名'],
+  },
+
   // ── Check-In Form 未提出の警告 (v2.10.2) ──────────────────────
   //  チェックイン日が「今日 - DAYS_AGO」なのに Check-In Form
-  //  (= FormResponses → LatestOptions) の記入が無い滞在について、
-  //  清掃ボードの E列(キー) を赤字にして目立たせる。
+  //  (= 上の CHECKIN_FORM で指定した宿泊者名簿のフォーム) の記入が
+  //  無い滞在について、清掃ボードの E列(キー) を赤字にして目立たせる。
   //
-  //  ・判定は「その滞在に対応する LatestOptions の行があるか」。
-  //    論理削除済みの行は数えない (キャンセル/再提出で消えた行)。
+  //  ・判定は CHECKIN_FORM の回答に (宿泊日, 部屋) で突合できるか。
+  //    フォームを読めない場合 (ID誤り・権限なし) は判定不能として
+  //    赤字を一切付けない。誤検知で催促するより安全側に倒す。
   //  ・DAYS_AGO: 1 なら「昨日チェックインした人」だけが対象。
   //    数日さかのぼって追いかけたい場合は 2, 3 と増やす
   //    (その日数分「前の日」まで対象が広がる)。

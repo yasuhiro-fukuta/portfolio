@@ -85,6 +85,7 @@ iCal が押さえていない「夜」だけを拾って骨格に合流させる
 | `OptionSync.gs` | フォーム回答の取込、食事/オプションサマリ生成 |
 | `GuestCount.gs` | **人数解決の共通ロジック** (v2.10 新規) |
 | `CleaningBoard.gs` | 清掃予定表の生成 |
+| `CheckinForm.gs` | **Check-In Form (宿泊者名簿) の取込** (v2.10.3 新規) |
 | `Diagnose.gs` | 突合が合わないときの原因切り分け |
 | `Utils.gs` | 日付・全角変換などの共通処理 |
 
@@ -115,16 +116,31 @@ Dragan Sekulic (2027-03-29〜30 / 04-01) の4泊が該当。
 あわせて `setupCleaningFormatting` の色付け範囲が 2000行 固定だったのを
 実際の行数から決めるようにし、`renderCleaningRows` の安全弁 (guard) も広げた。
 
-### 4. Check-In Form 未提出の警告 (v2.10.2)
+### 4. Check-In Form 未提出の警告 (v2.10.2 / 参照先を v2.10.3 で修正)
 
-チェックイン日が「今日 - `DAYS_AGO`」なのに Check-In Form
-(= `FormResponses` → `LatestOptions`) の記入が無い滞在について、
-清掃ボードの **E列(キー)を赤字**にする。既定は `DAYS_AGO: 1` = 昨日到着分。
+チェックイン日が「今日 - `DAYS_AGO`」なのに Check-In Form の記入が
+無い滞在について、清掃ボードの **E列(キー)を赤字**にする。
+既定は `DAYS_AGO: 1` = 昨日到着分。
 
-- 提出の有無は `applyOptionsInfo` が立てる `stay.formDone` で判定する。
-  `LatestOptions` に (宿泊日, 部屋) で突合できた滞在が「提出済み」。
-  論理削除済みの行は数えないので、キャンセルや再提出で消えた行は
-  提出済みに数えられない。
+**★フォームが2種類あることに注意。**
+
+| | 中身 | 置き場所 |
+|---|---|---|
+| `FormResponses` → `LatestOptions` | 食事の注文、泉屋送迎・荷物・タクシー等 | マスターと同じブック |
+| **Check-In Form** | 代表者氏名 / 住所 / 職業 / 電話番号 (宿泊者名簿) | **別スプレッドシート** |
+
+v2.10.2 では誤って前者 (食事フォーム) を見ていた。食事を注文していれば
+宿泊者名簿が未提出でも「提出済み」と判定されてしまうため、
+v2.10.3 で `CheckinForm.gs` を新設し後者を見るように直した。
+
+- 場所は `CONFIG.CHECKIN_FORM` に設定する (`SPREADSHEET_ID` / `SHEET_NAME`)。
+- 列は**見出し名**で探す。フォームに設問を足して列がずれても壊れない。
+- 突合キーは (Check-in Date, Room Name)。`Room Name` は
+  "1st floor" / "2nd floor" で入るので `normalizeRoom()` が 1F / 2F に解決する。
+  氏名の表記ゆれ ("Mitchell seach" と "Seach Mitchell" 等) は突合に影響しない。
+- **フォームを読めない場合 (ID誤り・権限なし) は赤字を一切付けない。**
+  全員を未提出扱いにして誤って催促するより安全側に倒す。
+  `dumpCheckinForm()` で読めているか確認できる。
 - **書式はバッチのたびに E列全体を既定色へ戻してから付け直す。**
   戻さないと、フォームが後から提出されても赤いままになる。
   値の書き込み (`writeCleaningBoard`) は書式を変えないため、
@@ -146,6 +162,7 @@ Dragan Sekulic (2027-03-29〜30 / 04-01) の4泊が該当。
 | `verifyCleaningBoardWrite()` | 実際に読み→書き→読み直して BEFORE/AFTER を並べる。書き込むのは E列以降のみ |
 | `diagnoseLodgifyMatch()` | 突合が合わないときの原因切り分け |
 | `listPendingCheckinForms()` | Check-In Form 未提出者の一覧。**書き込みなし** |
+| `dumpCheckinForm()` | Check-In Form が読めているかの確認。**書き込みなし** |
 
 `selfTest` の **[1b]** は `Function.prototype.toString()` で関数のソースを見て、
 新版の目印 (呼び出しの形) が含まれるかを判定する。

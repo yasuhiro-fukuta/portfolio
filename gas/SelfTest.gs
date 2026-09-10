@@ -36,6 +36,7 @@ function selfTest() {
     'buildCleaningBoard',                                        // CleaningBoard.gs
     'lodgifyRowKey', 'syncLodgifyBookings',                      // LodgifyFetcher.gs
     'toHalfWidth', 'addDaysStr', 'numOrZero',                    // Utils.gs
+    'loadCheckinFormEntries', 'applyCheckinFormStatus',           // CheckinForm.gs
     'syncOptions', 'runBatch', 'diagnoseLodgifyMatch',
   ];
   const missing = needed.filter(n => typeof g[n] !== 'function');
@@ -70,6 +71,7 @@ function selfTest() {
     ['syncOptions',          'backfillOptionGuests(optSh','OptionSync.gs'],
     ['syncLodgifyBookings',  'lodgifyRowKey(',            'LodgifyFetcher.gs'],
     ['numOrZero',            'toHalfWidth(',              'Utils.gs'],
+    ['buildCleaningBoard',   'applyCheckinFormStatus',    'CleaningBoard.gs'],
   ];
   const stale = [];
   VERSION_MARKS.forEach(([fn, mark, file]) => {
@@ -211,8 +213,23 @@ function selfTest() {
   // ── 6b. Check-In Form 未提出の警告 (書き込まずに対象を出すだけ) ──
   Logger.log('\n[6b] Check-In Form 未提出 (E列を赤字にする対象)');
   const AL = CONFIG.CHECKIN_FORM_ALERT || {};
+
+  //  ★参照先は宿泊者名簿のフォーム (別スプレッドシート)。
+  //    食事フォーム (LatestOptions) とは別物。
+  const cifMap = applyCheckinFormStatus(stays);
+  if (cifMap === null) {
+    ng('Check-In Form を読めていません → dumpCheckinForm() で確認してください');
+    Logger.log('       (読めない間は誤検知を避けるため赤字を一切付けません)');
+  } else {
+    ok(`Check-In Form の回答 ${Object.keys(cifMap).length} 件を読み込み`);
+    const submitted = stays.filter(s => s.formDone === true).length;
+    Logger.log(`       提出済み ${submitted} / 全滞在 ${stays.length}`);
+  }
+
   if (AL.ENABLED === false) {
     warn('CHECKIN_FORM_ALERT.ENABLED = false のため無効');
+  } else if (cifMap === null) {
+    warn('判定不能のため対象なし');
   } else {
     const alertIdx = computeCheckinFormAlertRows(stays, rows);
     if (!alertIdx.length) {
