@@ -62,6 +62,15 @@ function buildCleaningBoard() {
   const rows = renderCleaningRows(stays);
   writeCleaningBoard(ss, rows);
 
+  // Check-In Form 未提出の警告 (書式のみ)。
+  // 失敗しても本体の書き込みは確定させたいので握りつぶす。
+  try {
+    const n = applyCheckinFormAlerts(stays, rows);
+    dlog(`Check-In Form 未提出の警告: ${n} 行`);
+  } catch (e) {
+    Logger.log(`Check-In Form 警告の適用に失敗 (処理は続行): ${e.stack || e}`);
+  }
+
   dlog(`CleaningBoard: ${rows.length} rows written`);
   return rows.length;
 }
@@ -159,6 +168,9 @@ function newStay(o) {
     meal:       '',
     origin:     o.origin || 'iCal',
     notes:      o.notes || [],
+    // Check-In Form (LatestOptions) の記入があったか。
+    // applyOptionsInfo が突合できた時点で true になる。
+    formDone:   false,
   };
 }
 
@@ -356,6 +368,8 @@ function applyOptionsInfo(stays) {
       }
     }
     if (!hit) return;
+
+    s.formDone = true;   // Check-In Form の記入あり
 
     if (hit.name && !s.name) s.name = hit.name;
     if (hit.meal) s.meal = hit.meal;
@@ -609,6 +623,125 @@ function ensureCleaningSheet() {
   // スマホでも手動列 A〜D が残るよう固定
   sh.setFrozenColumns(C.STAFF_NIGHT);
   return sh;
+}
+
+// ============================================================
+//  7. Check-In Form 未提出の警告 (E列を赤字にする)
+// ============================================================
+
+/**
+ * 「チェックイン日が 今日 - DAYS_AGO なのに Check-In Form が未提出」の
+ * 滞在について、清掃ボードの E列(キー) を赤字にする行番号を求める。
+ *
+ * フォーム提出の有無は applyOptionsInfo が立てる stay.formDone で見る。
+ * LatestOptions に (宿泊日, 部屋) で突合できた滞在が「提出済み」。
+ * 論理削除された行は applyOptionsInfo 側で除外済みなので、
+ * キャンセルや再提出で消えた行は提出済みに数えない。
+ *
+ * @param {Array<Object>} stays
+ * @param {Array<Array>}  rows  renderCleaningRows() の戻り値
+ * @return {Array<number>} rows 内のインデックス (0始まり)
+ */
+function computeCheckinFormAlertRows(stays, rows) {
+  const A = CONFIG.CHECKIN_FORM_ALERT || {};
+  const C = CONFIG.COL_CLEAN;
+  const WS = CONFIG.CLEANING.WRITE_START_COL;
+
+  const daysAgo = (A.DAYS_AGO == null) ? 1 : Number(A.DAYS_AGO);
+  const today = fmtDate(todayJst());
+
+  // DAYS_AGO=1 なら昨日だけ。2以上なら その日数分さかのぼって全部対象。
+  const targets = {};
+  for (let i = 1; i <= Math.max(1, daysAgo); i++) {
+    targets[addDaysStr(today, -i)] = true;
+  }
+
+  const pending = {};
+  let n = 0;
+  stays.forEach(s => {
+    if (!targets[s.checkin]) return;
+    if (s.formDone) return;
+    pending[`${s.checkin}|${s.room}`] = true;
+    n++;
+    dlog(`Check-In Form 未提出: ${s.checkin} ${s.room} ${s.name || '(氏名未取得)'}`);
+  });
+  if (!n) return [];
+
+  const out = [];
+  rows.forEach((r, i) => {
+    if (pending[`${r[C.DATE - WS]}|${r[C.ROOM - WS]}`]) out.push(i);
+  });
+  return out;
+}
+
+/**
+ * 上で求めた行の E列(キー) に赤字を適用する。
+ *
+ * ★毎回 E列全体を既定の書式に戻してから付け直す。
+ *   戻さないと、フォームが後から提出されても赤いままになる。
+ *   値の書き込み (writeCleaningBoard) は書式を変えないため、
+ *   ここで明示的に戻す必要がある。
+ *
+ * ★色は濃い赤 + 太字。状態が「OUT→IN」の行は条件付き書式で
+ *   背景が赤系になるため、明るい赤だと読めなくなる。
+ *
+ * @return {number} 赤字にした行数
+ */
+function applyCheckinFormAlerts(stays, rows) {
+  const A = CONFIG.CHECKIN_FORM_ALERT || {};
+  const C = CONFIG.COL_CLEAN;
+  const sh = ensureCleaningSheet();
+  const last = sh.getLastRow();
+
+  // 1. 前回の赤字を戻す (ヘッダー行は触らない)
+  if (last > 1) {
+    sh.getRange(2, C.KEY, last - 1, 1)
+      .setFontColor('#000000')
+      .setFontWeight('normal');
+  }
+
+  if (A.ENABLED === false) return 0;
+
+  // 2. 対象行に赤字を付ける
+  const idxs = computeCheckinFormAlertRows(stays, rows);
+  const color = A.COLOR || '#A50E0E';
+  idxs.forEach(i => {
+    const cell = sh.getRange(i + 2, C.KEY);   // rows[0] はシート2行目
+    cell.setFontColor(color);
+    if (A.BOLD !== false) cell.setFontWeight('bold');
+  });
+
+  return idxs.length;
+}
+
+/**
+ * 未提出者を一覧で確認する (書き込みなし)。
+ * 「誰に催促すればよいか」をログで見たいとき用。
+ */
+function listPendingCheckinForms() {
+  const bookings = loadLodgifyBookings();
+  const stays = readStaysFromReservations();
+  mergeLodgifyStays(stays, bookings);
+  applyLodgifyPeople(stays, bookings);
+  applyOptionsInfo(stays);
+  applyOverride(stays);
+
+  const A = CONFIG.CHECKIN_FORM_ALERT || {};
+  const daysAgo = (A.DAYS_AGO == null) ? 1 : Number(A.DAYS_AGO);
+  const today = fmtDate(todayJst());
+
+  Logger.log(`=== Check-In Form 未提出 (チェックイン日が ${daysAgo} 日前まで) ===`);
+  let n = 0;
+  for (let i = 1; i <= Math.max(1, daysAgo); i++) {
+    const d = addDaysStr(today, -i);
+    stays.filter(s => s.checkin === d && !s.formDone).forEach(s => {
+      Logger.log(`  ${s.checkin} ${s.room} ${s.name || '(氏名未取得)'} ` +
+                 `${s.people || '?'}名 ${s.nights}泊 予約元=${s.lodgifySource || s.source}`);
+      n++;
+    });
+  }
+  if (!n) Logger.log('  未提出はありません。');
+  return n;
 }
 
 /**

@@ -115,6 +115,27 @@ Dragan Sekulic (2027-03-29〜30 / 04-01) の4泊が該当。
 あわせて `setupCleaningFormatting` の色付け範囲が 2000行 固定だったのを
 実際の行数から決めるようにし、`renderCleaningRows` の安全弁 (guard) も広げた。
 
+### 4. Check-In Form 未提出の警告 (v2.10.2)
+
+チェックイン日が「今日 - `DAYS_AGO`」なのに Check-In Form
+(= `FormResponses` → `LatestOptions`) の記入が無い滞在について、
+清掃ボードの **E列(キー)を赤字**にする。既定は `DAYS_AGO: 1` = 昨日到着分。
+
+- 提出の有無は `applyOptionsInfo` が立てる `stay.formDone` で判定する。
+  `LatestOptions` に (宿泊日, 部屋) で突合できた滞在が「提出済み」。
+  論理削除済みの行は数えないので、キャンセルや再提出で消えた行は
+  提出済みに数えられない。
+- **書式はバッチのたびに E列全体を既定色へ戻してから付け直す。**
+  戻さないと、フォームが後から提出されても赤いままになる。
+  値の書き込み (`writeCleaningBoard`) は書式を変えないため、
+  ここで明示的に戻す必要がある。
+- 色は濃い赤 (`#A50E0E`) + 太字。状態が「OUT→IN」の行は条件付き書式で
+  背景が赤系 (`#FF7C80`) になるため、明るい赤だと読めなくなる。
+- 設定は `CONFIG.CHECKIN_FORM_ALERT`。`ENABLED: false` で無効化、
+  `DAYS_AGO` を 2, 3 と増やすとその日数分さかのぼって対象になる。
+- `listPendingCheckinForms()` で未提出者の一覧だけをログに出せる
+  (書き込みなし)。メニューにも「📋 Check-In Form 未提出を一覧」がある。
+
 ---
 
 ## テスト
@@ -124,6 +145,7 @@ Dragan Sekulic (2027-03-29〜30 / 04-01) の4泊が該当。
 | `selfTest()` | **書き込みなし**。関数の存在・**版**・単体ロジック・シート・Lodgify取得・合流結果・人数充足率を1回で確認 |
 | `verifyCleaningBoardWrite()` | 実際に読み→書き→読み直して BEFORE/AFTER を並べる。書き込むのは E列以降のみ |
 | `diagnoseLodgifyMatch()` | 突合が合わないときの原因切り分け |
+| `listPendingCheckinForms()` | Check-In Form 未提出者の一覧。**書き込みなし** |
 
 `selfTest` の **[1b]** は `Function.prototype.toString()` で関数のソースを見て、
 新版の目印 (呼び出しの形) が含まれるかを判定する。

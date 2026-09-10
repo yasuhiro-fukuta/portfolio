@@ -208,6 +208,22 @@ function selfTest() {
   icalMiss.length ? warn(`iCal未掲載の警告が ${icalMiss.length} 行 (iCal取得もれの可能性)`)
                   : ok('iCal未掲載の警告は無し');
 
+  // ── 6b. Check-In Form 未提出の警告 (書き込まずに対象を出すだけ) ──
+  Logger.log('\n[6b] Check-In Form 未提出 (E列を赤字にする対象)');
+  const AL = CONFIG.CHECKIN_FORM_ALERT || {};
+  if (AL.ENABLED === false) {
+    warn('CHECKIN_FORM_ALERT.ENABLED = false のため無効');
+  } else {
+    const alertIdx = computeCheckinFormAlertRows(stays, rows);
+    if (!alertIdx.length) {
+      ok(`未提出なし (チェックイン日が ${AL.DAYS_AGO || 1} 日前まで)`);
+    } else {
+      warn(`${alertIdx.length} 件が未提出 → E列を赤字にする`);
+      alertIdx.forEach(i => Logger.log(
+        `       シート行${i + 2}  ${rows[i][C.KEY - WS]} ${rows[i][C.GUEST_NAME - WS]}`));
+    }
+  }
+
   // ── 7. 食事予約表の人数充足率 (書き込まずに見積もるだけ) ──────
   Logger.log('\n[7] 食事予約表 (LatestOptions) の人数');
   diagnoseOptionGuests(bookings);
