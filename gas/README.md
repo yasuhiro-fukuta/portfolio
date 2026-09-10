@@ -138,6 +138,10 @@ v2.10.3 で `CheckinForm.gs` を新設し後者を見るように直した。
 - 突合キーは (Check-in Date, Room Name)。`Room Name` は
   "1st floor" / "2nd floor" で入るので `normalizeRoom()` が 1F / 2F に解決する。
   氏名の表記ゆれ ("Mitchell seach" と "Seach Mitchell" 等) は突合に影響しない。
+- **文字色は `buildCleaningBoard` を実行したときにだけ塗り直される。**
+  コードを新しくしただけでは古い赤は消えない。判定が変わったのに
+  赤が残っている場合は、まずバッチを1回流すこと。
+  `explainRedKeys()` が「いま塗るべきか」をセルごとに教えてくれる。
 - **フォームを読めない場合 (ID誤り・権限なし) は赤字を一切付けない。**
   全員を未提出扱いにして誤って催促するより安全側に倒す。
   `dumpCheckinForm()` で読めているか確認できる。
@@ -163,6 +167,7 @@ v2.10.3 で `CheckinForm.gs` を新設し後者を見るように直した。
 | `diagnoseLodgifyMatch()` | 突合が合わないときの原因切り分け |
 | `listPendingCheckinForms()` | Check-In Form 未提出者の一覧。**書き込みなし** |
 | `dumpCheckinForm()` | Check-In Form が読めているかの確認。**書き込みなし** |
+| `explainRedKeys()` | E列の赤字の出どころを特定する。**書き込みなし** |
 
 `selfTest` の **[1b]** は `Function.prototype.toString()` で関数のソースを見て、
 新版の目印 (呼び出しの形) が含まれるかを判定する。

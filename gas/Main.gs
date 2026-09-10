@@ -312,6 +312,7 @@ function onOpen() {
     .addItem('👥 食事表の人数だけ補完',              'runGuestBackfillOnly')
     .addItem('📋 Check-In Form 未提出を一覧',        'listPendingCheckinForms')
     .addItem('🔍 Check-In Form 読み込み確認',        'dumpCheckinForm')
+    .addItem('❓ E列が赤い理由を調べる',              'explainRedKeys')
     .addItem('🔍 Lodgify レスポンス確認',            'dumpLodgifyBookings')
     .addItem('🩺 直予約・人数の突合診断',            'diagnoseLodgifyMatch')
     .addSeparator()
