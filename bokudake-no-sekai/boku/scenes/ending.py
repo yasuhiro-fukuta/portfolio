@@ -10,87 +10,87 @@ import pygame
 from .. import config as C
 from .. import save as save_mod
 from ..app import CONFIRM_KEYS, Scene
-from ..art import Background, draw_character, glitch as draw_glitch
+from ..art import Background, GlitchDriver, draw_character
 from ..fonts import get_font
 from ..ui import Fader, draw_text_center, draw_text_shadow, radial_light
 
 ENDINGS = {
-    # 第一章で「わすれる」を選んだとき
+    # 第一章で「忘れる」を選んだとき
     "wasureru": {
-        "name": "しあわせなゆうしゃ",
+        "name": "幸せな勇者",
         "label": "ENDING 1",
         "bg": "capital_day",
         "chara": ("yuusha", 0.5),
         "color": C.GOLD,
         "glitch": 0.0,
         "epilogue": [
-            "ぼくは、ほころびから 目を そらした。",
-            "そらした とたん、それは はじめから なかったように うすれていった。",
+            "ぼくは、ほころびから目をそらした。",
+            "そらしたとたん、それははじめから無かったように薄れていった。",
             "",
-            "まちは きょうも ぼくを たたえ、リィナは きょうも ぼくを ほめる。",
-            "パン屋の おやじは、きょうも おなじ せりふで わらう。",
-            "ふんすいは、きっちり 四びょうで おなじ しぶきを あげる。",
+            "町は今日もぼくを讃え、リィナは今日もぼくを褒める。",
+            "パン屋のおやじは、今日も同じ台詞で笑う。",
+            "噴水は、きっちり四秒で同じしぶきを上げる。",
             "",
-            "なにも こまらない。なにも かわらない。",
-            "きずつくことは、もう ぜったいに ない。",
+            "何も困らない。何も変わらない。",
+            "傷つくことは、もう絶対にない。",
             "",
-            "── ほころびは どんどん うすれていき、",
-            "　　勇者は いつまでも しあわせに くらしました。",
+            "── ほころびはどんどん薄れていき、",
+            "　　勇者はいつまでも幸せに暮らしました。",
             "",
-            "　　　　いつまでも。やすらかに。",
+            "　　　　いつまでも。安らかに。",
         ],
     },
 
     # 第二章：正気がゼロになったとき
     "hodou": {
-        "name": "しろい おと",
+        "name": "白い音",
         "label": "ENDING 2",
         "bg": "outside_night",
         "chara": ("boku", 0.5),
         "color": C.DEEP_RED,
-        "glitch": 2.2,
+        "glitch": 1.6,
         "epilogue": [
-            "あたまの なかが、しろい おとで いっぱいに なった。",
-            "きづいたら、ぼくは 道の まんなかで さけんでいた。",
+            "頭の中が、白い音でいっぱいになった。",
+            "気づいたら、ぼくは道の真ん中で叫んでいた。",
             "",
-            "ことばでは なかった。ただの おとだった。",
-            "窓が つぎつぎ あかるくなって、カーテンが ゆれて、また とじた。",
+            "言葉ではなかった。ただの音だった。",
+            "窓が次々明るくなって、カーテンが揺れて、また閉じた。",
             "",
-            "父さんが 家から 出てきて、ぼくを 見た。",
-            "それから、けいたいを ひらいて、みじかく なにか 話した。",
-            "父さん：「……はい。うちの 息子です。おねがいします」",
+            "父さんが家から出てきて、ぼくを見た。",
+            "それから、携帯を開いて、短く何か話した。",
+            "父さん：「……はい。うちの息子です。お願いします」",
             "",
-            "赤い ひかりが、道の かべを ぐるぐる まわっていた。",
-            "近所の人たちは、こんども 出てこなかった。カーテンの うしろにいた。",
+            "赤い光が、道の壁をぐるぐる回っていた。",
+            "近所の人たちは、今度も出てこなかった。カーテンの後ろにいた。",
             "",
-            "── この後、彼は 問題を 起こし、",
-            "　　警察に 補導されたのち、入院する 事になる。",
+            "── この後、彼は問題を起こし、",
+            "　　警察に補導されたのち、入院する事になる。",
         ],
     },
 
     # 第三章：娘の誘いを受けたとき
     "mitasareta": {
-        "name": "みたされたせかい",
+        "name": "満たされた世界",
         "label": "ENDING 3",
         "bg": "bedroom",
         "chara": ("princess", 0.5),
         "color": C.ROSE,
-        "glitch": 0.8,
+        "glitch": 0.6,
         "epilogue": [
-            "ぼくは、さしだされた 手を とった。",
-            "ろうそくの ひかりが、ひとつずつ きえていく。",
+            "ぼくは、差し出された手を取った。",
+            "蝋燭の光が、ひとつずつ消えていく。",
             "",
-            "ドアの むこうの 廊下の ことは、もう かんがえなかった。",
-            "泣いていた 声の ことも、かんがえなかった。",
-            "かんがえないと きめれば、この 世界では ほんとうに なかったことに なる。",
+            "ドアの向こうの廊下のことは、もう考えなかった。",
+            "泣いていた声のことも、考えなかった。",
+            "考えないと決めれば、この世界では本当に無かったことになる。",
             "",
-            "── この後、俺たちは 何度も 愛し合った。",
-            "　　人々は みな、その後 夫婦と なった 俺たちを 祝福した。",
+            "── この後、俺たちは何度も愛し合った。",
+            "　　人々はみな、その後夫婦となった俺たちを祝福した。",
             "",
-            "　　何もかも 満たされた 世界。",
-            "　　欲しかったものを 独占できる 世界。",
+            "　　何もかも満たされた世界。",
+            "　　欲しかったものを独占できる世界。",
             "",
-            "　　　　ただ一点、彼女の 眼に 光が 無かったことを 除いて。",
+            "　　　　ただ一点、彼女の眼に光が無かったことを除いて。",
         ],
     },
 
@@ -101,28 +101,28 @@ ENDINGS = {
         "bg": "room_dark",
         "chara": ("boku", 0.5),
         "color": C.MIST,
-        "glitch": 0.4,
+        "glitch": 0.0,
         "epilogue": [
-            "じぶんの 悲鳴で、目が さめた。",
+            "自分の悲鳴で、目が覚めた。",
             "",
-            "いつもの、くらい へや。",
-            "モニタだけが つけっぱなしで、青白く ひかっている。",
-            "ゆかには、ゆうべ 買ってきた 牛乳の ふくろ。",
+            "いつもの、暗い部屋。",
+            "モニタだけがつけっぱなしで、青白く光っている。",
+            "床には、昨夜買ってきた牛乳の袋。",
             "",
-            "ゆめの 中の 父さんの こえと、ほんものの 父さんの こえが、",
-            "おなじ ことを 言っていた。",
+            "夢の中の父さんの声と、本物の父さんの声が、",
+            "同じことを言っていた。",
             "",
-            "「牛乳を 買ってきてくれ」",
-            "「保健室に プリントを 出してきてくれ」",
+            "「牛乳を買ってきてくれ」",
+            "「保健室にプリントを出してきてくれ」",
             "",
-            "ぼくは、まだ どちらの 世界にも 立っていない。",
+            "ぼくは、まだどちらの世界にも立っていない。",
         ],
         "credits": [
             ("", C.TITLE),
             ("", ""),
             ("テーマ", "自分の生きる理由は自分で決める"),
             ("", ""),
-            ("ここまでのプレイ、ありがとうございました", "物語は、まだ 途中です"),
+            ("ここまでのプレイ、ありがとうございました", "物語は、まだ途中です"),
             ("", ""),
             ("", "― つづく ―"),
         ],
@@ -136,7 +136,7 @@ ENDINGS = {
         "chara": ("boku", 0.5),
         "color": C.MIST,
         "glitch": 0.0,
-        "epilogue": ["ものがたりは、ここで とまっている。"],
+        "epilogue": ["物語は、ここで止まっている。"],
     },
 }
 
@@ -148,7 +148,7 @@ CREDITS = [
     ("シナリオ・プログラム", "Python 3 / pygame"),
     ("グラフィック", "すべて図形で描画（画像素材なし）"),
     ("", ""),
-    ("そして", "ここまで つきあってくれた あなた"),
+    ("そして", "ここまで付き合ってくれたあなた"),
     ("", ""),
     ("", "― おわり ―"),
 ]
@@ -162,6 +162,7 @@ class EndingScene(Scene):
         self.ending_id = ending_id if ending_id in ENDINGS else "stay"
         self.bg = Background(self.data["bg"])
         self.fader = Fader()
+        self.glitch = GlitchDriver(self.data.get("glitch", 0.0))
         self.fader.set(255)
         self.fader.to(0, 1.6)
         self.phase = "card"          # card / epilogue / credits / done
@@ -204,6 +205,7 @@ class EndingScene(Scene):
     def update(self, dt):
         self.bg.update(dt, self.time)
         self.fader.update(dt)
+        self.glitch.update(dt)
         self.skip_hint = max(0.0, self.skip_hint - dt)
 
         if self.phase == "card":
@@ -232,8 +234,7 @@ class EndingScene(Scene):
 
         cid, pos = self.data["chara"]
         draw_character(surf, cid, pos, self.time, alpha=170, scale=0.85)
-        if self.data.get("glitch"):
-            draw_glitch(surf, self.data["glitch"], self.time)
+        self.glitch.draw(surf, self.time)
 
         if self.phase == "card":
             self._draw_card(surf)
@@ -244,7 +245,7 @@ class EndingScene(Scene):
 
         if self.skip_hint > 0 and self.phase != "done":
             alpha = int(140 * min(1.0, self.skip_hint / 1.5))
-            img = get_font(16).render("Z / クリックで すすむ", True, C.MIST)
+            img = get_font(16).render("Z / クリックで進む", True, C.MIST)
             img.set_alpha(alpha)
             surf.blit(img, (C.SCREEN_W - 220, C.SCREEN_H - 30))
 
@@ -292,5 +293,5 @@ class EndingScene(Scene):
             y += 92
 
         if self.phase == "done":
-            draw_text_center(surf, "Z / クリックで タイトルへ", get_font(20), C.GOLD,
+            draw_text_center(surf, "Z / クリックでタイトルへ", get_font(20), C.GOLD,
                              (C.SCREEN_W // 2, C.SCREEN_H - 70))

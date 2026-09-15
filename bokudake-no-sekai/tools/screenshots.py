@@ -32,6 +32,9 @@ def _story_shot(app, story, name, bg, chars, text, speaker="", glitch=0.0, chapt
     story.bg.change(bg, instant=True)
     story.st.characters = [list(c) for c in chars]
     story.st.glitch = glitch
+    story.glitch.set_base(glitch)
+    if glitch:
+        story.glitch.hit(glitch, 9.0)          # 静止画なので発作を止めておく
     if chapter:
         story.st.chapter = chapter
     story.card = None
@@ -64,24 +67,24 @@ def main():
 
     _story_shot(app, story, "02_castle.png", "castle_hall",
                 [["yuusha", "center"], ["king", "right"]],
-                "国王：よくぞ 参られた、わが国の 英雄よ。", "国王", chapter="第一章")
+                "よくぞ参られた、我が国の英雄よ。", "国王", chapter="第一章")
     _story_shot(app, story, "03_glitch.png", "capital_day",
                 [["yuusha", "left"], ["riina", "right"]],
-                "やっぱり わたしの えらんだ ひとは ちが ぁ ぁ", "リィナ", glitch=1.8)
+                "やっぱり私の選んだ人は違ぁ ぁ", "リィナ", glitch=2.6)
     _story_shot(app, story, "04_broken.png", "capital_broken", [["bug", "center"]],
-                "目を 覚ますな！！", "ほころび", glitch=4.4)
+                "目を覚ますな！！", "ほころび", glitch=4.4)
     story.st.flags["shouki"] = 46
     _story_shot(app, story, "05_father.png", "outside_night", [["father", "right"]],
-                "学校も 行かない、働きも しないなら、それくらいの 役に 立て。", "父さん",
+                "学校も行かない、働きもしないなら、それくらいの役に立て。", "父さん",
                 chapter="第二章")
     _story_shot(app, story, "06_ballroom.png", "ball_room", [["princess", "center"]],
-                "……こんな 席、ぬけだして しまいませんか。", "娘", chapter="第三章")
+                "……こんな席、抜け出してしまいませんか。", "娘", chapter="第三章")
     _story_shot(app, story, "07_corridor.png", "corridor_dark", [],
-                "まじで キモすぎるよね。あの顔で ■■に 告白とか、しかも みんな 見てる前で。",
-                "女子C", glitch=3.4)
+                "まじでキモすぎるよね。あの顔で■■に告白とか、しかもみんな見てる前で。",
+                "女子C", glitch=2.2)
     _story_shot(app, story, "08_bug_parents.png", "dream_home_dark",
                 [["mother", "right"], ["father", "left"]],
-                "あなたは、そのままで いいのよ。あなたは、そのままで いいのよ。", "母さん",
+                "あなたは、そのままでいいのよ。あなたは、そのままでいいのよ。", "母さん",
                 glitch=5.0)
     app.pop()
 

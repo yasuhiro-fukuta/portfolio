@@ -10,7 +10,7 @@ import pygame
 from .. import config as C
 from ..app import (CANCEL_KEYS, CONFIRM_KEYS, DOWN_KEYS, LEFT_KEYS,
                    RIGHT_KEYS, Scene, UP_KEYS)
-from ..art import Background, draw_tear, glitch as draw_glitch
+from ..art import Background, GlitchDriver, draw_tear
 from ..data.rooms import ROOMS
 from ..fonts import get_font
 from ..ui import (Fader, MessageWindow, draw_text_center, draw_text_shadow,
@@ -30,6 +30,7 @@ class ExploreScene(Scene):
         self.st.bg = self.room["bg"]
         self.msg = MessageWindow()
         self.fader = Fader()
+        self.glitch = GlitchDriver(self.st.glitch)
         self.queue: list[str] = []
         self.mode = "select"        # select / read
         self.leaving = False
@@ -51,7 +52,7 @@ class ExploreScene(Scene):
             need = self.room["exit"].get("require", 0)
             need_ids = self.room["exit"].get("require_ids", [])
             if len(self.seen) < need or any(i not in self.seen for i in need_ids):
-                self.notice = self.room["exit"].get("locked", "まだ すすめない。")
+                self.notice = self.room["exit"].get("locked", "まだ進めない。")
                 self.notice_time = 2.4
                 return
             self.leaving = True
@@ -131,6 +132,7 @@ class ExploreScene(Scene):
         self.bg.update(dt, self.time)
         self.msg.update(dt)
         self.fader.update(dt)
+        self.glitch.update(dt)
         self.notice_time = max(0.0, self.notice_time - dt)
         if self.mode == "exit" and not self.fader.busy:
             self.app.pop({"seen": sorted(self.seen), "room": self.room_id})
@@ -140,8 +142,7 @@ class ExploreScene(Scene):
         for i, item in enumerate(self.points):
             if item.get("tear"):
                 draw_tear(surf, (item["pos"][0], item["pos"][1] - 52), 30, self.time, seed=i)
-        if self.st.glitch > 0:
-            draw_glitch(surf, self.st.glitch, self.time)
+        self.glitch.draw(surf, self.time)
 
         if self.mode != "read":
             for i, item in enumerate(self.items):
@@ -172,7 +173,7 @@ class ExploreScene(Scene):
                              C.PAPER, head.center)
             draw_text_shadow(surf, self.room["hint"], get_font(17), C.MIST,
                              (30, C.SCREEN_H - 30), alpha=120)
-            draw_text_shadow(surf, f"しらべた：{len(self.seen)} / {len(self.points)}",
+            draw_text_shadow(surf, f"調べた：{len(self.seen)} / {len(self.points)}",
                              get_font(17), C.GOLD, (C.SCREEN_W - 150, 78))
         else:
             self.msg.draw(surf, self.time)

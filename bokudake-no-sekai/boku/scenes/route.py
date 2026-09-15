@@ -14,7 +14,7 @@ import pygame
 
 from .. import config as C
 from ..app import CONFIRM_KEYS, LEFT_KEYS, RIGHT_KEYS, Scene
-from ..art import Background, draw_character, glitch as draw_glitch
+from ..art import Background, GlitchDriver, draw_character
 from ..fonts import get_font
 from ..ui import (Fader, draw_text_center, draw_text_shadow, panel,
                   radial_light)
@@ -25,12 +25,12 @@ START_X = 54
 
 STAGES = {
     # ---- 第二章：おつかい ----
-    # かげは、それぞれの 視線の 手前に 置いてある。
-    # 「見られる前に かげへ、目を そらした すきに 進む」が 基本。
+    # 影は、それぞれの視線の手前に置いてある。
+    # 「見られる前に影へ、目をそらした隙に進む」が基本。
     "school": {
         "bg": "street_night",
-        "label": "学校へ　― プリントを だす ―",
-        "goal": "がっこう",
+        "label": "学校へ　― プリントを出す ―",
+        "goal": "学校",
         "goal_kind": "school",
         "watchers": [
             {"x": 330, "kind": "father", "period": 3.8, "phase": 0.0, "radius": 118},
@@ -42,7 +42,7 @@ STAGES = {
     },
     "super": {
         "bg": "street_night",
-        "label": "スーパーへ　― 牛乳を かう ―",
+        "label": "スーパーへ　― 牛乳を買う ―",
         "goal": "スーパー",
         "goal_kind": "shop",
         "watchers": [
@@ -56,8 +56,8 @@ STAGES = {
     },
     "home": {
         "bg": "street_night",
-        "label": "いえへ　― もう、かえりたい ―",
-        "goal": "いえ",
+        "label": "家へ　― もう、帰りたい ―",
+        "goal": "家",
         "goal_kind": "home",
         "watchers": [
             {"x": 300, "kind": "girl", "period": 3.6, "phase": 0.6, "radius": 114},
@@ -70,8 +70,8 @@ STAGES = {
     # ---- 第三章：逃走 ----
     "chase": {
         "bg": "corridor_dark",
-        "label": "にげろ",
-        "goal": "むこう",
+        "label": "逃げろ",
+        "goal": "向こう",
         "goal_kind": "corridor",
         "chase": True,
         "pursuers": [
@@ -100,6 +100,7 @@ class RouteScene(Scene):
         self.bg = Background(bg_name)
         self.st.bg = bg_name
         self.fader = Fader()
+        self.glitch = GlitchDriver(self.stage.get("glitch", 0.0))
         self.fader.set(255)
         self.fader.to(0, 0.7)
 
@@ -151,6 +152,7 @@ class RouteScene(Scene):
     def update(self, dt):
         self.bg.update(dt, self.time)
         self.fader.update(dt)
+        self.glitch.update(dt)
         self.hit_flash = max(0.0, self.hit_flash - dt)
         if self.phase == "ready":
             self.intro_time -= dt
@@ -179,6 +181,7 @@ class RouteScene(Scene):
                 if abs(p["x"] - self.x) < 46:
                     self.seen_now = True
                     self.hit_flash = 0.25
+                    self.glitch.hit(2.6, 0.18)
         elif not self._in_shadow():
             for w in self.stage["watchers"]:
                 if self._watching(w) and abs(self.x - w["x"]) < w["radius"]:
@@ -188,7 +191,7 @@ class RouteScene(Scene):
         if self.seen_now:
             self._damage(self.stage["drain"] * dt)
         elif self._in_shadow():
-            self._damage(-7.0 * dt)          # かげでは すこし ととのう
+            self._damage(-7.0 * dt)          # 影では少し整う
 
         if self.phase == "play" and self.x >= GOAL_X - 2:
             self.phase = "done"
@@ -229,14 +232,13 @@ class RouteScene(Scene):
         draw_character(surf, "boku", self.x / C.SCREEN_W, self.time,
                        base_y=GROUND_Y, scale=0.66, alpha=150 if hidden else 255)
         if hidden:
-            draw_text_center(surf, "かくれている", get_font(16), (170, 200, 230),
+            draw_text_center(surf, "隠れている", get_font(16), (170, 200, 230),
                              (self.x, GROUND_Y - 238))
         elif self.seen_now:
             draw_text_center(surf, "見られている", get_font(17, bold=True), C.DEEP_RED,
                              (self.x, GROUND_Y - 238))
 
-        if self.stage.get("glitch"):
-            draw_glitch(surf, self.stage["glitch"], self.time)
+        self.glitch.draw(surf, self.time)
         if self.hit_flash > 0 or (self.seen_now and not self.chase):
             layer = pygame.Surface((C.SCREEN_W, C.SCREEN_H), pygame.SRCALPHA)
             layer.fill((180, 40, 60, int(26 + 40 * self.hit_flash)))
@@ -296,19 +298,19 @@ class RouteScene(Scene):
 
         draw_text_shadow(surf, self.stage["label"], get_font(17), C.PAPER,
                          (C.SCREEN_W - 340, 36), alpha=150)
-        hint = ("← → いそげ。つかまると 正気が けずれる"
-                if self.chase else "← → すすむ・もどる　　かげの なかは 見つからない")
+        hint = ("← → 急げ。捕まっている間、正気が削られる"
+                if self.chase else "← → 進む・戻る　　電柱の影に入ると見つからない")
         draw_text_shadow(surf, hint, get_font(17), C.PAPER, (40, C.SCREEN_H - 30), alpha=150)
 
         if self.phase == "ready":
             box = pygame.Rect(0, 0, 660, 108)
             box.center = (C.SCREEN_W // 2, C.SCREEN_H // 2 - 40)
             panel(surf, box, (12, 14, 24), alpha=215, radius=14, border=C.GOLD, border_alpha=120)
-            title = "にげろ" if self.chase else f"{self.stage['goal']}まで、見つからないように"
+            title = "逃げろ" if self.chase else f"{self.stage['goal']}まで、見つからないように"
             draw_text_center(surf, title, get_font(24, bold=True), C.PAPER,
                              (box.centerx, box.centery - 18))
-            sub = ("つかまっているあいだ、正気が けずれていく"
-                   if self.chase else "← → で いどう　　かげに はいると やりすごせる")
+            sub = ("捕まっている間、正気が削られていく"
+                   if self.chase else "← → で移動　　影に入るとやり過ごせる")
             draw_text_center(surf, sub, get_font(18), C.MIST, (box.centerx, box.centery + 22))
         elif self.phase in ("done", "broken"):
             box = pygame.Rect(0, 0, 640, 120)
@@ -316,14 +318,14 @@ class RouteScene(Scene):
             panel(surf, box, (12, 14, 24), alpha=225, radius=14,
                   border=C.GOLD if self.phase == "done" else C.DEEP_RED, border_alpha=150)
             if self.phase == "done":
-                draw_text_center(surf, f"{self.stage['goal']}に ついた", get_font(26, bold=True),
+                draw_text_center(surf, f"{self.stage['goal']}に着いた", get_font(26, bold=True),
                                  C.GOLD, (box.centerx, box.centery - 16))
                 draw_text_center(surf, f"正気：{self.shouki}", get_font(19), C.PAPER,
                                  (box.centerx, box.centery + 22))
             else:
-                draw_text_center(surf, "もう、むりだ", get_font(26, bold=True),
+                draw_text_center(surf, "もう、無理だ", get_font(26, bold=True),
                                  C.DEEP_RED, (box.centerx, box.centery - 16))
-                draw_text_center(surf, "あたまの なかが、しろい おとで いっぱいになる。",
+                draw_text_center(surf, "頭の中が、白い音でいっぱいになる。",
                                  get_font(19), C.PAPER, (box.centerx, box.centery + 22))
-            draw_text_center(surf, "Z / クリックで つづける", get_font(17), C.MIST,
+            draw_text_center(surf, "Z / クリックで続ける", get_font(17), C.MIST,
                              (box.centerx, box.bottom + 26))

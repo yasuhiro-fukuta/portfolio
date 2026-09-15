@@ -18,7 +18,7 @@ scenario/*.txt を読み込み、1本のコマンド列にする。
 
 対応コマンド：
     bg / chara / chapter / caption / say / wait / clear / choice / label /
-    jump / flag / if / explore / route / shake / flash / glitch /
+    jump / flag / if / explore / route / shake / flash / glitch / burst /
     bgm / ending / save
 """
 
@@ -172,6 +172,13 @@ def _parse_line(raw: str, src: str, lineno: int) -> Command | None:
         except ValueError:
             level = 1.0
         return Command("glitch", {"level": level}, src, lineno)
+
+    if op == "burst":
+        try:
+            power = float(rest) if rest else 3.0
+        except ValueError:
+            power = 3.0
+        return Command("burst", {"power": power}, src, lineno)
 
     if op == "flash":
         return Command("flash", {"color": rest.strip() or "white"}, src, lineno)

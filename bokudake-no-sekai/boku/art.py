@@ -595,6 +595,58 @@ def glitch(surf: pygame.Surface, level: float, t: float, rng: random.Random | No
     surf.blit(layer, (0, 0))
 
 
+class GlitchDriver:
+    """ほころびの出かたを管理する。
+
+    ずっと画面が揺れていると見ていて疲れるので、
+    ふだんは何も起きず、ときどき短く走る——という出しかたにする。
+      base   … その場面の不安定さ（0〜5）。大きいほど発作の間隔が短い
+      hit()  … その瞬間だけ強く走らせる（扉が変わる、悲鳴、など）
+    """
+
+    def __init__(self, base: float = 0.0):
+        self.rng = random.Random()
+        self.base = 0.0
+        self.level = 0.0
+        self.timer = 0.0            # 発作の残り時間
+        self.wait = 0.0             # 次の発作まで
+        self.set_base(base)
+
+    def set_base(self, base: float):
+        self.base = max(0.0, float(base))
+        self.wait = self._interval() * self.rng.uniform(0.2, 0.7)
+
+    def _interval(self) -> float:
+        if self.base <= 0:
+            return 999.0
+        return max(1.1, 6.2 - self.base * 1.0)
+
+    def hit(self, power: float = 2.5, duration: float = 0.3):
+        self.level = max(self.level, power)
+        self.timer = max(self.timer, duration)
+
+    def update(self, dt: float):
+        if self.timer > 0:
+            self.timer -= dt
+            if self.timer <= 0:
+                self.level = 0.0
+                self.wait = self._interval() * self.rng.uniform(0.7, 1.5)
+        elif self.base > 0:
+            self.wait -= dt
+            if self.wait <= 0:
+                self.level = self.base * self.rng.uniform(0.7, 1.15)
+                self.timer = min(0.42, 0.10 + self.base * 0.055)
+
+    @property
+    def current(self) -> float:
+        return self.level if self.timer > 0 else 0.0
+
+    def draw(self, surf, t):
+        level = self.current
+        if level > 0:
+            glitch(surf, level, t)
+
+
 def draw_tear(surf, center, size, t, seed=0):
     """一か所の「ほころび」を描く（探索シーンの目印にも使う）。"""
     rng = random.Random(seed)

@@ -17,9 +17,9 @@ from ..ui import (ChoiceMenu, Fader, draw_text_center, draw_text_shadow,
                   radial_light)
 
 ENDING_NAMES = {
-    "wasureru": "しあわせなゆうしゃ",
-    "hodou": "しろい おと",
-    "mitasareta": "みたされたせかい",
+    "wasureru": "幸せな勇者",
+    "hodou": "白い音",
+    "mitasareta": "満たされた世界",
     "tsuzuku": "つづく",
 }
 
@@ -32,7 +32,7 @@ class TitleScene(Scene):
         self.fader.set(255)
         self.fader.to(0, 1.2)
         self.has_save = save_mod.any_exists()
-        self.options = ["はじめから"] + (["つづきから"] if self.has_save else []) + ["おわる"]
+        self.options = ["はじめから"] + (["つづきから"] if self.has_save else []) + ["終わる"]
         self.menu = ChoiceMenu(self.options, center_y=396, width=360)
         self.leaving = None
 
@@ -55,7 +55,7 @@ class TitleScene(Scene):
 
     def _select(self, index):
         choice = self.options[index]
-        if choice == "おわる":
+        if choice == "終わる":
             self.app.quit()
             return
         self.leaving = choice
@@ -85,7 +85,7 @@ class TitleScene(Scene):
         title_font = get_font(58, bold=True)
         y = 150 + math.sin(self.time * 0.8) * 3
         draw_text_center(surf, C.TITLE, title_font, C.PAPER, (C.SCREEN_W // 2, y))
-        draw_text_center(surf, "― じぶんの いきる りゆうは、じぶんで きめる ―",
+        draw_text_center(surf, "― 自分の生きる理由は、自分で決める ―",
                          get_font(18), C.MIST, (C.SCREEN_W // 2, y + 48))
 
         self.menu.draw(surf, self.time)
@@ -93,10 +93,10 @@ class TitleScene(Scene):
         seen = self.app.state.endings_seen
         if seen:
             names = "　".join(ENDING_NAMES.get(e, e) for e in seen)
-            draw_text_center(surf, f"みたエンディング：{names}", get_font(16), C.GOLD,
+            draw_text_center(surf, f"見たエンディング：{names}", get_font(16), C.GOLD,
                              (C.SCREEN_W // 2, C.SCREEN_H - 52))
         draw_text_shadow(surf, f"ver {C.VERSION}", get_font(15), C.MIST,
                          (C.SCREEN_W - 96, C.SCREEN_H - 28), alpha=120)
-        draw_text_shadow(surf, "↑↓ えらぶ　　Z / Enter けってい", get_font(16), C.MIST,
+        draw_text_shadow(surf, "↑↓ 選ぶ　　Z / Enter 決定", get_font(16), C.MIST,
                          (28, C.SCREEN_H - 28), alpha=140)
         self.fader.draw(surf)

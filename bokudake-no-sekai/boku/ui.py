@@ -332,7 +332,7 @@ class Backlog:
         overlay.fill((8, 10, 18, 235))
         surf.blit(overlay, (0, 0))
         title_font = get_font(22, bold=True)
-        draw_text_shadow(surf, "── これまでのはなし　［↑↓ でスクロール／B・ESC でもどる］",
+        draw_text_shadow(surf, "── これまでの話　［↑↓ でスクロール／B・ESC で戻る］",
                          title_font, C.MIST, (48, 28))
 
         font = get_font(21)

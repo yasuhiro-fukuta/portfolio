@@ -8,7 +8,7 @@ import pygame
 from .. import config as C
 from .. import save as save_mod
 from ..app import (CANCEL_KEYS, CONFIRM_KEYS, DOWN_KEYS, Scene, UP_KEYS)
-from ..art import Background, draw_character, draw_tear, glitch as draw_glitch
+from ..art import Background, GlitchDriver, draw_character, draw_tear
 from ..fonts import get_font
 from ..script import Script, load_script
 from ..ui import (Backlog, ChoiceMenu, Fader, MessageWindow, Shake,
@@ -28,6 +28,7 @@ class StoryScene(Scene):
         self.backlog = Backlog()
         self.fader = Fader()
         self.shake = Shake()
+        self.glitch = GlitchDriver(self.st.glitch)
 
         self.mode = "run"            # run / message / choice / wait / chapter / caption / menu / slots
         self.timer = 0.0
@@ -66,7 +67,7 @@ class StoryScene(Scene):
         while self.mode == "run":
             guard += 1
             if guard > 2000:
-                self.notify("シナリオが ループしています")
+                self.notify("シナリオがループしています")
                 self.mode = "message"
                 return
             if self.st.pc >= len(self.script):
@@ -157,6 +158,10 @@ class StoryScene(Scene):
 
         elif op == "glitch":
             self.st.glitch = a["level"]
+            self.glitch.set_base(a["level"])
+
+        elif op == "burst":
+            self.glitch.hit(a["power"], 0.34)
 
         elif op == "route":
             from .route import RouteScene
@@ -296,7 +301,7 @@ class StoryScene(Scene):
     # ---- メニュー ------------------------------------------------------
     def _open_menu(self):
         self.mode = "menu"
-        self.menu = ChoiceMenu(["もどる", "セーブする", "ロードする", "タイトルへ"],
+        self.menu = ChoiceMenu(["戻る", "セーブする", "ロードする", "タイトルへ"],
                                center_y=C.SCREEN_H // 2, width=420)
 
     def _close_menu(self):
@@ -312,8 +317,8 @@ class StoryScene(Scene):
             if info:
                 labels.append(f"{i}　{info.get('headline', '')}　{info.get('saved_at', '')}")
             else:
-                labels.append(f"{i}　- あきスロット -")
-        labels.append("もどる")
+                labels.append(f"{i}　- 空きスロット -")
+        labels.append("戻る")
         return labels
 
     def _menu_select(self, index):
@@ -340,25 +345,26 @@ class StoryScene(Scene):
             keep_pc, st.pc = st.pc, self.save_pc
             ok = save_mod.save(slot, st, st.chapter)
             st.pc = keep_pc
-            self.notify(f"スロット{slot}に セーブしました" if ok else "セーブに しっぱいしました")
+            self.notify(f"スロット{slot}にセーブしました" if ok else "セーブに失敗しました")
             self._close_menu()
         else:
             loaded = save_mod.load(slot)
             if loaded:
                 self._apply_state(loaded)
             else:
-                self.notify("データが ありません")
+                self.notify("データがありません")
 
     def _apply_state(self, loaded):
         self.app.state = loaded
         self.st = loaded
+        self.glitch.set_base(loaded.glitch)
         self.menu = None
         self.msg.clear()
         self.mode = "run"
         self._sync_screen()
         self.fader.set(255)
         self.fader.to(0, 0.6)
-        self.notify("ロードしました")
+        self.notify("読み込みました")
         self.step()
 
     def _quick_save(self):
@@ -366,14 +372,14 @@ class StoryScene(Scene):
         keep_pc, st.pc = st.pc, self.save_pc
         ok = save_mod.save(1, st, st.chapter)
         st.pc = keep_pc
-        self.notify("クイックセーブ（スロット1）" if ok else "セーブに しっぱいしました")
+        self.notify("クイックセーブ（スロット1）" if ok else "セーブに失敗しました")
 
     def _quick_load(self):
         loaded = save_mod.load(1)
         if loaded:
             self._apply_state(loaded)
         else:
-            self.notify("スロット1に データが ありません")
+            self.notify("スロット1にデータがありません")
 
     # ------------------------------------------------------------------
     # 更新・描画
@@ -385,6 +391,7 @@ class StoryScene(Scene):
         self.msg.update(dt)
         self.fader.update(dt)
         self.shake.update(dt)
+        self.glitch.update(dt)
         self.hint_time = max(0.0, self.hint_time - dt)
         self.toast_time = max(0.0, self.toast_time - dt)
 
@@ -403,11 +410,12 @@ class StoryScene(Scene):
     def draw(self, surf):
         frame = pygame.Surface((C.SCREEN_W, C.SCREEN_H))
         self.bg.draw(frame, self.time)
+        now = self.glitch.current
         for cid, pos in self.st.characters:
-            draw_character(frame, cid, pos, self.time,
-                           glitch_level=self.st.glitch * 0.5 if cid == "bug" else 0.0)
-        if self.st.glitch > 0:
-            draw_glitch(frame, self.st.glitch, self.time)
+            # ノイズの人がたは、発作が起きていなくても かたちが ゆらぐ
+            level = max(now, 1.2) if cid == "bug" else now * 0.6
+            draw_character(frame, cid, pos, self.time, glitch_level=level)
+        self.glitch.draw(frame, self.time)
 
         if self.mode == "caption" and self.caption_text:
             self._draw_caption(frame)
@@ -424,7 +432,7 @@ class StoryScene(Scene):
             overlay.fill((8, 10, 18, 190))
             frame.blit(overlay, (0, 0))
             title = "メニュー" if self.mode == "menu" else (
-                "どのスロットに セーブする？" if self.slot_purpose == "save" else "どのデータを よみこむ？")
+                "どのスロットにセーブする？" if self.slot_purpose == "save" else "どのデータを読み込む？")
             draw_text_center(frame, title, get_font(24, bold=True), C.MIST,
                              (C.SCREEN_W // 2, self.menu.top - 56))
             self.menu.draw(frame, self.time)
@@ -499,7 +507,7 @@ class StoryScene(Scene):
 
         if self.hint_time > 0:
             alpha = int(150 * min(1.0, self.hint_time / 1.5))
-            hint = "Z / クリック：すすむ　　B：りれき　　ESC：メニュー　　F5/F9：クイックセーブ・ロード"
+            hint = "Z / クリック：進む　　B：履歴　　ESC：メニュー　　F5/F9：クイックセーブ・ロード"
             img = font.render(hint, True, C.MIST)
             img.set_alpha(alpha)
             frame.blit(img, (22, C.SCREEN_H - 24))
