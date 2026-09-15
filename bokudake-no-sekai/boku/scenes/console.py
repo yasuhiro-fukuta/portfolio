@@ -7,7 +7,9 @@
 
 from __future__ import annotations
 
+import datetime
 import math
+import os
 import random
 
 import pygame
@@ -26,6 +28,15 @@ RED = (236, 110, 110)
 
 TYPE_SPEED = 26.0          # 1秒あたりに打つ文字数
 LINE_DELAY = 0.09          # 出力を1行ずつ出す間隔
+
+
+def _mtime(path: str) -> str:
+    """そのフォルダの、実際の最終更新日時。"""
+    try:
+        return datetime.datetime.fromtimestamp(
+            os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M")
+    except OSError:
+        return "--------- --:--"
 
 
 def ward_pc_script() -> list[tuple]:
@@ -65,9 +76,14 @@ def ward_pc_script() -> list[tuple]:
         ("say", "なんだよ……これ。"),
         ("say", "俺の世界が、フォルダに入ってる。"),
         ("wait", 0.4),
+        ("type", "ls -ld ."),
+        ("out", [f"drwxr-xr-x   {_mtime(root)}   {os.path.basename(root)}/", ""]),
+        ("say", "……俺の作りかけが、ある。"),
+        ("say", "家のパソコンにしか入ってないはずのやつが。"),
+        ("wait", 0.4),
         ("type", "edit boku"),
         ("err", ["エラー: 書き込みが拒否されました。", f"  {meta.write_attempt()}", ""]),
-        ("say", "書き換えられない。"),
+        ("say", "世界の方は、書き換えられない。"),
         ("say", "読むことはできて、直すことはできない。"),
         ("say", "……そういう立場なんだ、俺は。"),
         ("wait", 0.6),
