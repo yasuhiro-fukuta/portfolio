@@ -20,12 +20,13 @@ pygame.init()
 
 from boku import art                       # noqa: E402
 from boku.data.rooms import ROOMS          # noqa: E402
+from boku.scenes.console import SCRIPTS     # noqa: E402
 from boku.scenes.ending import ENDINGS     # noqa: E402
 from boku.scenes.route import STAGES       # noqa: E402
 from boku.script import load_script        # noqa: E402
 
 KNOWN_FLAGS = {"hokorobi", "shouki", "errand_school", "errand_super",
-               "errand_done", "route_ok", "shouki_broken", "day"}
+               "errand_done", "route_ok", "shouki_broken", "day", "fail"}
 
 
 def main() -> int:
@@ -43,7 +44,9 @@ def main() -> int:
         elif cmd.op == "explore" and a["room"] not in ROOMS:
             errors.append(f"知らない探索先 '{a['room']}' ({where})")
         elif cmd.op == "route" and a["stage"] not in STAGES:
-            errors.append(f"知らない通学路 '{a['stage']}' ({where})")
+            errors.append(f"知らない外出シーン '{a['stage']}' ({where})")
+        elif cmd.op == "console" and a["id"] not in SCRIPTS:
+            errors.append(f"知らない端末スクリプト '{a['id']}' ({where})")
         elif cmd.op == "ending" and a["id"] not in ENDINGS:
             errors.append(f"知らないエンディング '{a['id']}' ({where})")
         elif cmd.op in ("flag", "if") and a["key"] not in KNOWN_FLAGS:

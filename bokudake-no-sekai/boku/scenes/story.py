@@ -163,6 +163,12 @@ class StoryScene(Scene):
         elif op == "burst":
             self.glitch.hit(a["power"], 0.34)
 
+        elif op == "console":
+            from .console import ConsoleScene
+            self.mode = "suspend"
+            self.msg.clear()
+            self.app.push(ConsoleScene(self.app, a["id"]))
+
         elif op == "route":
             from .route import RouteScene
             self.mode = "suspend"
@@ -498,7 +504,7 @@ class StoryScene(Scene):
                              (bar.x - 40, bar.y - 4), alpha=150)
             pygame.draw.rect(frame, (24, 26, 38), bar, border_radius=4)
             inner = bar.inflate(-4, -4)
-            inner.width = int(inner.width * max(0, shouki) / 100)
+            inner.width = int(inner.width * min(100, max(0, shouki)) / 100)
             if inner.width:
                 ratio = shouki / 100
                 col = C.MIST if ratio > 0.5 else (C.WARM if ratio > 0.25 else C.DEEP_RED)

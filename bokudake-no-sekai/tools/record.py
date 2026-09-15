@@ -37,8 +37,16 @@ CHAPTERS = {
           "choices": [1, 1], "file": "ch1_matta_sekai.mp4"},
     "2": {"title": "第二章 目が覚める", "start": "ch2_start", "stop_label": "ch3_start",
           "choices": [0], "file": "ch2_megasameru.mp4"},
-    "3": {"title": "第三章 また、夢の中で", "start": "ch3_start", "stop_label": None,
+    "3": {"title": "第三章 また、夢の中で", "start": "ch3_start", "stop_label": "ch4_start",
           "choices": [0, 0, 1], "file": "ch3_yume_no_naka.mp4"},
+    "4": {"title": "第四章 壊れる", "start": "ch4_start", "stop_label": "ch5_start",
+          "choices": [0], "file": "ch4_kowareru.mp4"},
+    "5": {"title": "第五章 観測者", "start": "ch5_start", "stop_label": "ch6_start",
+          "choices": [], "file": "ch5_kansokusha.mp4"},
+    "6": {"title": "第六章 私が決めます", "start": "ch6_start", "stop_label": "ch7_start",
+          "choices": [1], "file": "ch6_watashi_ga_kimemasu.mp4"},
+    "7": {"title": "第七章 俺が決める", "start": "ch7_start", "stop_label": None,
+          "choices": [0], "file": "ch7_ore_ga_kimeru.mp4"},
 }
 
 
@@ -108,6 +116,7 @@ def _route_direction(scene) -> tuple:
 
 def record_chapter(key: str, out_dir: str, max_seconds: int = 900) -> str:
     from boku.app import App
+    from boku.scenes.console import ConsoleScene
     from boku.scenes.ending import EndingScene
     from boku.scenes.explore import ExploreScene
     from boku.scenes.route import RouteScene
@@ -207,6 +216,9 @@ def record_chapter(key: str, out_dir: str, max_seconds: int = 900) -> str:
                     log.append(f"▷ しらべる：{scene.items[want]['name']}")
                     scene._select()
                     hold = 0.3
+
+        elif isinstance(scene, ConsoleScene):
+            pass                                  # 端末シーンは自分の間合いで進む
 
         elif isinstance(scene, RouteScene):
             if scene.phase == "ready":

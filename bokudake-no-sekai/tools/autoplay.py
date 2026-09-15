@@ -25,17 +25,41 @@ DT = 1.0 / 60.0
 
 
 class _FakeKeys:
-    """通学路シーンを進めるため「→ を押しっぱなし」にする。"""
+    """外出シーンの自動操作。押していることにするキーを差し替える。"""
 
-    def __init__(self, held=(pygame.K_RIGHT,)):
-        self.held = held
+    held: tuple = (pygame.K_RIGHT,)
 
     def __getitem__(self, key):
-        return key in self.held
+        return key in _FakeKeys.held
+
+
+def _route_direction(scene) -> tuple:
+    """見られる前に影へ、目をそらした隙に進む。"""
+    if scene.chase:
+        return (pygame.K_RIGHT,)
+    x = scene.x
+    in_shadow = scene._in_shadow()
+    for w in scene.stage["watchers"]:
+        if x > w["x"] + w["radius"] or not scene._watching(w):
+            continue
+        if x < w["x"] - w["radius"] - 30:
+            if in_shadow:
+                return ()
+            ahead = [sh for sh in scene.stage["shadows"]
+                     if sh[0] > x - 10 and sh[1] < w["x"] - w["radius"] + 40]
+            return (pygame.K_RIGHT,) if ahead else ()
+        if in_shadow:
+            return ()
+        back = [sh for sh in scene.stage["shadows"] if sh[1] <= x + 6]
+        if back and x - back[-1][1] < 140:
+            return (pygame.K_LEFT,)
+        return (pygame.K_RIGHT,)
+    return (pygame.K_RIGHT,)
 
 
 def play(choices=None, seed=0, max_frames=200000, verbose=False, route_policy="walk"):
     from boku.app import App
+    from boku.scenes.console import ConsoleScene
     from boku.scenes.ending import EndingScene
     from boku.scenes.explore import ExploreScene
     from boku.scenes.route import RouteScene
@@ -92,15 +116,22 @@ def play(choices=None, seed=0, max_frames=200000, verbose=False, route_policy="w
                 scene.index = unseen[0] if unseen else len(scene.items) - 1
                 scene._select()
 
+        elif isinstance(scene, ConsoleScene):
+            scene._skip()
+
         elif isinstance(scene, RouteScene):
             if scene.phase == "ready":
                 scene.phase = "play"
-                if route_policy == "caught" or (
-                        route_policy == "caught_chase" and scene.stage_id == "chase"):
+                targets = {"caught": ("school",), "caught_chase": ("chase",),
+                           "caught_ward": ("ward_pc",)}.get(route_policy, ())
+                if scene.stage_id in targets:
                     scene.st.set("shouki", 0)      # わざと正気を削りきる
                     scene.phase = "broken"
+            elif scene.phase == "play":
+                _FakeKeys.held = _route_direction(scene)
             elif scene.phase in ("done", "broken"):
-                log.append(f"通学路 {scene.stage_id}: {scene.phase}")
+                _FakeKeys.held = (pygame.K_RIGHT,)
+                log.append(f"外出 {scene.stage_id}: {scene.phase}（正気 {scene.shouki}）")
                 scene._finish()
 
         elif isinstance(scene, EndingScene):
@@ -121,13 +152,18 @@ def play(choices=None, seed=0, max_frames=200000, verbose=False, route_policy="w
 
 
 # （名前, 選択肢, 外出方針, 期待するエンディング）
+# 選択肢の順番：
+#   1 第一章 気のせい/調べる      2 第一章 忘れる/追う       3 第二章 学校/スーパー
+#   4 第三章 なだめる/抜け出す    5 第三章 進む（一択）      6 第三章 手を取る/逃げる
+#   7 第四章 食い下がる/黙る      8 第六章 つまらない/話す   9 第七章 続けたい/頷く
 ROUTES = [
-    ("第一章で わすれる", [0, 0], "walk", "wasureru"),
-    ("正気が もたなかった", [1, 1, 0], "caught", "hodou"),
-    ("娘の 手を とる", [1, 1, 0, 0, 0, 0], "walk", "mitasareta"),
-    ("逃げる（第三章の さいご）", [1, 1, 0, 0, 0, 1], "walk", "tsuzuku"),
-    ("スーパーから まわる", [1, 1, 1, 1, 0, 1], "walk", "tsuzuku"),
-    ("夢の中で つかまる", [1, 1, 0, 0, 0, 1], "caught_chase", "tsuzuku"),
+    ("第一章で忘れる", [0, 0], "walk", "wasureru"),
+    ("正気がもたなかった", [1, 1, 0], "caught", "hodou"),
+    ("娘の手を取る", [1, 1, 0, 0, 0, 0], "walk", "mitasareta"),
+    ("最後まで（真エンド）", [1, 1, 0, 0, 0, 1, 0, 0, 0], "walk", "kimeru"),
+    ("スーパーから回る", [1, 1, 1, 0, 0, 1, 1, 1, 1], "walk", "kimeru"),
+    ("夢の中で捕まる", [1, 1, 0, 0, 0, 1, 0, 0, 0], "caught_chase", "kimeru"),
+    ("病棟で見つかる", [1, 1, 0, 0, 0, 1, 0, 0, 0], "caught_ward", "kimeru"),
 ]
 
 
@@ -136,7 +172,7 @@ def main():
     ap.add_argument("--choices", default=None)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--route-policy", default="walk",
-                    choices=["walk", "caught", "caught_chase"])
+                    choices=["walk", "caught", "caught_chase", "caught_ward"])
     ap.add_argument("--all", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()

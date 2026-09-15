@@ -156,7 +156,12 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     headless = "--headless" in argv
     app = App(headless=headless)
+    from . import meta
     from .scenes.title import TitleScene
-    app.push(TitleScene(app))
+    if meta.notice_seen() or headless:
+        app.push(TitleScene(app))
+    else:
+        from .scenes.notice import NoticeScene
+        app.push(NoticeScene(app))
     app.run()
     return 0

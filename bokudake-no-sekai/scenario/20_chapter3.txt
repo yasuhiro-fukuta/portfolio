@@ -351,4 +351,4 @@
 @flash white
 @wait 1.0
 @glitch 0
-@ending tsuzuku
+@jump ch4_start

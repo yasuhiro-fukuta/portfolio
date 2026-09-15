@@ -64,6 +64,40 @@ def font_path() -> str | None:
     return None
 
 
+_MONO_CANDIDATES = [
+    "/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf",
+    "/usr/share/fonts/truetype/ipafont-gothic/ipag.ttf",
+    "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+    "C:/Windows/Fonts/MS Gothic.ttf",
+    "C:/Windows/Fonts/msgothic.ttc",
+    "/System/Library/Fonts/Menlo.ttc",
+]
+
+
+@functools.lru_cache(maxsize=1)
+def mono_path() -> str | None:
+    """端末画面用の、等幅よりのフォント。無ければ通常のフォント。"""
+    env = os.environ.get("BOKU_MONO_FONT")
+    if env and os.path.exists(env):
+        return env
+    for path in _MONO_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    for name in ("ipagothic", "msgothic", "dejavusansmono", "liberationmono", "menlo"):
+        found = pygame.font.match_font(name, bold=False)
+        if found:
+            return found
+    return font_path()
+
+
+@functools.lru_cache(maxsize=32)
+def get_mono(size: int, bold: bool = False) -> pygame.font.Font:
+    path = mono_path()
+    font = pygame.font.Font(path, size) if path else pygame.font.SysFont("monospace", size)
+    font.set_bold(bold)
+    return font
+
+
 @functools.lru_cache(maxsize=64)
 def get_font(size: int, bold: bool = False) -> pygame.font.Font:
     """指定サイズのフォントを返す（結果はキャッシュされる）。"""

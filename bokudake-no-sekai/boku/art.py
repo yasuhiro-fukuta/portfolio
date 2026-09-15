@@ -517,6 +517,280 @@ def _bg_dream_home_dark(s):
     _bg_dream_home(s, blackout=True)
 
 
+# ---- 第四章：現実がこわれていく ----
+def _bg_living_real(s):
+    """現実の家のリビング。蛍光灯が白い。"""
+    s.blit(vertical_gradient(SIZE, (108, 104, 100), (86, 82, 80)), (0, 0))
+    pygame.draw.rect(s, (120, 100, 82), pygame.Rect(0, 392, C.SCREEN_W, 148))
+    pygame.draw.line(s, (72, 60, 50), (0, 392), (C.SCREEN_W, 392), 3)
+    pygame.draw.rect(s, (238, 238, 230), pygame.Rect(360, 24, 240, 16), border_radius=4)
+    g = radial_light(280, (255, 255, 246), strength=52)
+    s.blit(g, g.get_rect(center=(480, 60)))
+    # テレビ（消えている）
+    pygame.draw.rect(s, (40, 40, 46), pygame.Rect(96, 236, 190, 120), border_radius=4)
+    pygame.draw.rect(s, (24, 24, 28), pygame.Rect(104, 244, 174, 104))
+    pygame.draw.rect(s, (60, 58, 60), pygame.Rect(150, 356, 82, 12))
+    # テーブルと食器
+    pygame.draw.rect(s, (150, 112, 82), pygame.Rect(330, 330, 330, 18), border_radius=4)
+    pygame.draw.rect(s, (126, 92, 66), pygame.Rect(356, 348, 14, 60))
+    pygame.draw.rect(s, (126, 92, 66), pygame.Rect(624, 348, 14, 60))
+    for dx in (-90, 0, 90):
+        pygame.draw.ellipse(s, (232, 230, 224), pygame.Rect(462 + dx, 316, 60, 18))
+    # 冷蔵庫とカレンダー
+    pygame.draw.rect(s, (222, 222, 220), pygame.Rect(770, 180, 140, 212), border_radius=6)
+    pygame.draw.line(s, (180, 180, 178), (770, 250), (910, 250), 3)
+    pygame.draw.rect(s, (240, 238, 228), pygame.Rect(660, 120, 90, 110))
+    for i in range(4):
+        pygame.draw.line(s, (188, 188, 182), (668, 152 + i * 20), (742, 152 + i * 20), 2)
+
+
+def _bg_office(s):
+    """役場の窓口。番号札と、白い蛍光灯。"""
+    s.blit(vertical_gradient(SIZE, (226, 228, 230), (198, 200, 204)), (0, 0))
+    pygame.draw.rect(s, (176, 172, 166), pygame.Rect(0, 400, C.SCREEN_W, 140))
+    for x in range(120, C.SCREEN_W, 300):
+        pygame.draw.rect(s, (250, 250, 244), pygame.Rect(x, 30, 200, 12), border_radius=3)
+    # カウンター
+    pygame.draw.rect(s, (208, 196, 180), pygame.Rect(0, 330, C.SCREEN_W, 70))
+    pygame.draw.rect(s, (188, 176, 160), pygame.Rect(0, 324, C.SCREEN_W, 14))
+    for x in range(60, C.SCREEN_W, 240):
+        pygame.draw.rect(s, (150, 160, 170), pygame.Rect(x, 250, 120, 74))
+        pygame.draw.rect(s, (232, 236, 240), pygame.Rect(x + 8, 258, 104, 58))
+    # 番号表示
+    pygame.draw.rect(s, (56, 60, 66), pygame.Rect(370, 80, 220, 90), border_radius=6)
+    pygame.draw.rect(s, (90, 200, 140), pygame.Rect(390, 100, 180, 50))
+    # 掲示物
+    for x, col in ((120, (220, 210, 180)), (760, (206, 216, 226))):
+        pygame.draw.rect(s, col, pygame.Rect(x, 90, 110, 140))
+        for i in range(5):
+            pygame.draw.line(s, (150, 146, 140), (x + 10, 110 + i * 22),
+                             (x + 96, 110 + i * 22), 2)
+
+
+def _bg_park_night(s):
+    """夜の公園。誰もいない遊具。"""
+    s.blit(vertical_gradient(SIZE, (18, 20, 40), (40, 42, 58)), (0, 0))
+    _stars(s, 110, (0, 240), rng=random.Random(19))
+    pygame.draw.rect(s, (48, 50, 44), pygame.Rect(0, 386, C.SCREEN_W, 154))
+    pygame.draw.ellipse(s, (66, 62, 52), pygame.Rect(240, 400, 300, 90))       # 砂場
+    # 街灯
+    pygame.draw.rect(s, (56, 56, 64), pygame.Rect(150, 180, 10, 208))
+    pygame.draw.circle(s, (234, 226, 190), (155, 176), 14)
+    g = radial_light(230, (236, 224, 180), strength=80)
+    s.blit(g, g.get_rect(center=(155, 176)))
+    # ブランコ
+    pygame.draw.line(s, (72, 74, 82), (600, 386), (650, 240), 5)
+    pygame.draw.line(s, (72, 74, 82), (800, 386), (750, 240), 5)
+    pygame.draw.line(s, (72, 74, 82), (640, 240), (760, 240), 5)
+    for x in (676, 726):
+        pygame.draw.line(s, (60, 62, 70), (x, 242), (x, 330), 2)
+        pygame.draw.line(s, (60, 62, 70), (x + 26, 242), (x + 26, 330), 2)
+        pygame.draw.rect(s, (86, 70, 60), pygame.Rect(x - 4, 330, 36, 8))
+    # すべり台
+    pygame.draw.polygon(s, (60, 64, 72), [(300, 386), (380, 290), (400, 290), (340, 386)])
+    pygame.draw.rect(s, (60, 64, 72), pygame.Rect(376, 290, 40, 96))
+    # 木
+    for cx in (60, 880):
+        pygame.draw.rect(s, (40, 36, 34), pygame.Rect(cx - 8, 300, 16, 90))
+        pygame.draw.circle(s, (36, 50, 44), (cx, 286), 56)
+
+
+def _bg_park_red(s):
+    """同じ公園。赤色灯が回っている。"""
+    _bg_park_night(s)
+    red = pygame.Surface(SIZE, pygame.SRCALPHA)
+    red.fill((150, 30, 40, 60))
+    s.blit(red, (0, 0))
+    for cx in (330, 700):
+        g = radial_light(240, (240, 70, 80), strength=110)
+        s.blit(g, g.get_rect(center=(cx, 250)))
+    pygame.draw.rect(s, (30, 32, 44), pygame.Rect(0, 420, C.SCREEN_W, 120))
+
+
+# ---- 第五章：病院 ----
+def _bg_ward_room(s):
+    """病室（個室）。格子の入った窓。"""
+    s.blit(vertical_gradient(SIZE, (208, 210, 206), (180, 182, 180)), (0, 0))
+    pygame.draw.rect(s, (168, 164, 156), pygame.Rect(0, 402, C.SCREEN_W, 138))
+    pygame.draw.line(s, (140, 138, 132), (0, 402), (C.SCREEN_W, 402), 3)
+    win = pygame.Rect(600, 96, 280, 190)
+    pygame.draw.rect(s, (150, 150, 152), win.inflate(18, 18))
+    pygame.draw.rect(s, (196, 214, 226), win)
+    for x in range(win.x + 26, win.right, 34):
+        pygame.draw.line(s, (120, 122, 126), (x, win.y), (x, win.bottom), 4)
+    pygame.draw.line(s, (120, 122, 126), (win.x, win.centery), (win.right, win.centery), 4)
+    g = radial_light(200, (240, 246, 250), strength=50)
+    s.blit(g, g.get_rect(center=win.center))
+    # ベッド
+    pygame.draw.rect(s, (216, 218, 220), pygame.Rect(90, 316, 330, 96), border_radius=6)
+    pygame.draw.rect(s, (238, 240, 242), pygame.Rect(90, 300, 330, 34), border_radius=8)
+    pygame.draw.rect(s, (248, 248, 250), pygame.Rect(108, 288, 110, 30), border_radius=8)
+    pygame.draw.rect(s, (188, 190, 192), pygame.Rect(84, 286, 10, 128))
+    pygame.draw.rect(s, (188, 190, 192), pygame.Rect(416, 286, 10, 128))
+    # サイドテーブルと紙コップ
+    pygame.draw.rect(s, (196, 186, 170), pygame.Rect(452, 330, 90, 12))
+    pygame.draw.rect(s, (176, 166, 150), pygame.Rect(490, 342, 12, 64))
+    pygame.draw.rect(s, (240, 240, 238), pygame.Rect(476, 310, 22, 22))
+
+
+def _bg_counsel(s):
+    """面談室。机ひとつ、椅子ふたつ。"""
+    s.blit(vertical_gradient(SIZE, (216, 212, 204), (192, 188, 182)), (0, 0))
+    pygame.draw.rect(s, (158, 140, 118), pygame.Rect(0, 400, C.SCREEN_W, 140))
+    pygame.draw.rect(s, (236, 232, 224), pygame.Rect(300, 320, 360, 20), border_radius=4)
+    pygame.draw.rect(s, (206, 200, 192), pygame.Rect(330, 340, 14, 66))
+    pygame.draw.rect(s, (206, 200, 192), pygame.Rect(616, 340, 14, 66))
+    for x in (250, 700):
+        pygame.draw.rect(s, (150, 140, 130), pygame.Rect(x, 330, 60, 12), border_radius=3)
+        pygame.draw.rect(s, (150, 140, 130), pygame.Rect(x + 4, 274, 52, 60), border_radius=6)
+    pygame.draw.rect(s, (240, 238, 232), pygame.Rect(120, 110, 120, 160))   # 掲示
+    pygame.draw.circle(s, (120, 160, 130), (820, 330), 40)                  # 観葉植物
+    pygame.draw.circle(s, (100, 146, 116), (792, 300), 30)
+    pygame.draw.circle(s, (112, 158, 124), (850, 302), 26)
+    pygame.draw.rect(s, (170, 130, 110), pygame.Rect(796, 350, 52, 56), border_radius=4)
+
+
+def _bg_ward_night(s):
+    """夜の病棟。非常灯だけが緑に光る。"""
+    s.fill((16, 18, 22))
+    pygame.draw.polygon(s, (34, 36, 42), [(0, 70), (C.SCREEN_W, 70), (600, 210), (360, 210)])
+    pygame.draw.polygon(s, (44, 44, 50), [(0, C.SCREEN_H), (C.SCREEN_W, C.SCREEN_H),
+                                          (600, 300), (360, 300)])
+    pygame.draw.polygon(s, (28, 30, 36), [(0, 70), (360, 210), (360, 300), (0, C.SCREEN_H)])
+    pygame.draw.polygon(s, (24, 26, 32), [(C.SCREEN_W, 70), (600, 210),
+                                          (600, 300), (C.SCREEN_W, C.SCREEN_H)])
+    for i, (x0, x1) in enumerate([(20, 150), (170, 280), (300, 352)]):
+        pygame.draw.rect(s, (52, 54, 60), pygame.Rect(x0, 150 + i * 16, x1 - x0, 150 - i * 18))
+        pygame.draw.rect(s, (70, 76, 80), pygame.Rect(x0 + 10, 162 + i * 16, 28, 34))
+    for i, (x0, x1) in enumerate([(810, 940), (690, 800), (608, 670)]):
+        pygame.draw.rect(s, (52, 54, 60), pygame.Rect(x0, 150 + i * 16, x1 - x0, 150 - i * 18))
+        pygame.draw.rect(s, (70, 76, 80), pygame.Rect(x0 + 10, 162 + i * 16, 28, 34))
+    pygame.draw.rect(s, (60, 150, 96), pygame.Rect(448, 206, 64, 22))       # 非常灯
+    g = radial_light(160, (80, 210, 140), strength=70)
+    s.blit(g, g.get_rect(center=(480, 218)))
+    for x in (250, 700):                                                    # 常夜灯
+        pygame.draw.circle(s, (120, 130, 120), (x, 120), 7)
+        g2 = radial_light(90, (150, 170, 150), strength=45)
+        s.blit(g2, g2.get_rect(center=(x, 120)))
+
+
+def _bg_ward_rest(s):
+    """病棟の共有スペース。夜は誰もいない。"""
+    s.blit(vertical_gradient(SIZE, (58, 62, 66), (44, 46, 50)), (0, 0))
+    pygame.draw.rect(s, (72, 68, 64), pygame.Rect(0, 400, C.SCREEN_W, 140))
+    win = pygame.Rect(60, 110, 220, 170)
+    pygame.draw.rect(s, (40, 42, 48), win.inflate(14, 14))
+    pygame.draw.rect(s, (36, 44, 62), win)
+    _stars(s, 24, (120, 270), rng=random.Random(8))
+    # テーブルとノートパソコン
+    pygame.draw.rect(s, (150, 130, 106), pygame.Rect(330, 320, 330, 18), border_radius=4)
+    pygame.draw.rect(s, (126, 108, 88), pygame.Rect(360, 338, 14, 66))
+    pygame.draw.rect(s, (126, 108, 88), pygame.Rect(618, 338, 14, 66))
+    pygame.draw.polygon(s, (66, 70, 78), [(446, 318), (556, 318), (566, 256), (436, 256)])
+    pygame.draw.polygon(s, (128, 186, 190), [(448, 312), (552, 312), (560, 262), (440, 262)])
+    pygame.draw.rect(s, (54, 58, 66), pygame.Rect(440, 318, 124, 8))
+    g = radial_light(180, (140, 200, 210), strength=60)
+    s.blit(g, g.get_rect(center=(500, 290)))
+    # ソファと自販機
+    pygame.draw.rect(s, (92, 84, 88), pygame.Rect(690, 300, 200, 90), border_radius=8)
+    pygame.draw.rect(s, (108, 98, 102), pygame.Rect(690, 286, 200, 30), border_radius=8)
+    pygame.draw.rect(s, (60, 70, 96), pygame.Rect(830, 120, 110, 170), border_radius=4)
+    for i in range(3):
+        pygame.draw.rect(s, (200, 190, 120), pygame.Rect(842 + i * 32, 150, 24, 40))
+
+
+# ---- 第六章：村 ----
+def _bg_village(s):
+    """小さな村。畑と井戸と、茅葺きの家。"""
+    s.blit(vertical_gradient(SIZE, (138, 180, 212), (226, 214, 186)), (0, 0))
+    pygame.draw.circle(s, (255, 246, 216), (150, 100), 44)
+    pygame.draw.ellipse(s, (128, 162, 112), pygame.Rect(-100, 300, 700, 260))
+    pygame.draw.ellipse(s, (110, 146, 100), pygame.Rect(420, 320, 700, 260))
+    rng = random.Random(37)
+    for x in range(40, C.SCREEN_W, 230):
+        base = 360 + rng.randint(-10, 10)
+        w = rng.randint(120, 150)
+        pygame.draw.rect(s, (198, 176, 144), pygame.Rect(x, base - 80, w, 80))
+        pygame.draw.polygon(s, (142, 112, 78), [(x - 16, base - 80), (x + w + 16, base - 80),
+                                                (x + w // 2, base - 140)])
+        pygame.draw.rect(s, (110, 84, 62), pygame.Rect(x + w // 2 - 14, base - 44, 28, 44))
+    # 畑のうね
+    for i in range(5):
+        y = 430 + i * 22
+        pygame.draw.line(s, (120, 96, 70), (60 + i * 8, y), (420 + i * 8, y), 7)
+        for k in range(8):
+            pygame.draw.circle(s, (110, 154, 96), (80 + i * 8 + k * 44, y - 6), 6)
+    # 井戸
+    pygame.draw.ellipse(s, (150, 146, 140), pygame.Rect(620, 404, 130, 46))
+    pygame.draw.ellipse(s, (60, 70, 80), pygame.Rect(636, 410, 98, 32))
+    pygame.draw.rect(s, (120, 94, 70), pygame.Rect(628, 330, 10, 80))
+    pygame.draw.rect(s, (120, 94, 70), pygame.Rect(732, 330, 10, 80))
+    pygame.draw.polygon(s, (142, 112, 78), [(612, 330), (758, 330), (685, 288)])
+
+
+def _bg_village_edge(s):
+    """村はずれ。丘のうえの一本道と、夕焼け。"""
+    s.blit(vertical_gradient(SIZE, (226, 146, 110), (250, 216, 160)), (0, 0))
+    pygame.draw.circle(s, (255, 236, 186), (700, 250), 72)
+    g = radial_light(320, (255, 200, 140), strength=70)
+    s.blit(g, g.get_rect(center=(700, 250)))
+    pygame.draw.ellipse(s, (146, 116, 96), pygame.Rect(-160, 320, 900, 320))
+    pygame.draw.ellipse(s, (120, 96, 84), pygame.Rect(380, 356, 860, 300))
+    pygame.draw.polygon(s, (198, 168, 128), [(360, 540), (470, 540), (620, 360), (586, 356)])
+    pygame.draw.rect(s, (72, 56, 48), pygame.Rect(250, 250, 16, 130))
+    pygame.draw.circle(s, (94, 82, 66), (258, 240), 52)
+    for x in range(120, C.SCREEN_W, 190):
+        pygame.draw.rect(s, (96, 78, 62), pygame.Rect(x, 392, 8, 46))       # 柵
+        pygame.draw.rect(s, (96, 78, 62), pygame.Rect(x - 60, 400, 130, 6))
+
+
+# ---- 第七章 ----
+def _bg_room_clean(s):
+    """片付いた部屋。カーテンを開けた朝。"""
+    s.blit(vertical_gradient(SIZE, (214, 214, 220), (188, 186, 194)), (0, 0))
+    pygame.draw.rect(s, (156, 140, 126), pygame.Rect(0, 402, C.SCREEN_W, 138))
+    pygame.draw.line(s, (120, 106, 94), (0, 402), (C.SCREEN_W, 402), 3)
+    win = pygame.Rect(96, 96, 230, 200)
+    pygame.draw.rect(s, (150, 146, 142), win.inflate(16, 16))
+    pygame.draw.rect(s, (238, 244, 250), win)
+    pygame.draw.line(s, (150, 146, 142), (win.centerx, win.y), (win.centerx, win.bottom), 5)
+    beam = pygame.Surface(SIZE, pygame.SRCALPHA)
+    pygame.draw.polygon(beam, (255, 246, 210, 70), [(110, 110), (330, 110), (620, 470), (240, 470)])
+    s.blit(beam, (0, 0))
+    g = radial_light(300, (255, 248, 216), strength=60)
+    s.blit(g, g.get_rect(center=(210, 200)))
+    # 机（片付いている）
+    pygame.draw.rect(s, (168, 140, 112), pygame.Rect(540, 300, 340, 16))
+    pygame.draw.rect(s, (146, 120, 96), pygame.Rect(554, 316, 12, 92))
+    pygame.draw.rect(s, (146, 120, 96), pygame.Rect(856, 316, 12, 92))
+    monitor = pygame.Rect(616, 182, 190, 114)
+    pygame.draw.rect(s, (48, 48, 54), monitor.inflate(12, 12), border_radius=6)
+    pygame.draw.rect(s, (210, 224, 230), monitor)
+    pygame.draw.rect(s, (60, 60, 68), pygame.Rect(660, 300, 100, 8), border_radius=3)
+    pygame.draw.rect(s, (188, 184, 180), pygame.Rect(620, 320, 180, 16), border_radius=4)
+    # きれいに畳んだ布団
+    pygame.draw.rect(s, (200, 198, 204), pygame.Rect(360, 356, 150, 50), border_radius=6)
+    pygame.draw.rect(s, (216, 214, 220), pygame.Rect(360, 344, 150, 22), border_radius=6)
+
+
+def _bg_hospital_out(s):
+    """病院の玄関。退院の朝。"""
+    s.blit(vertical_gradient(SIZE, (154, 186, 220), (226, 224, 212)), (0, 0))
+    pygame.draw.circle(s, (255, 248, 222), (760, 100), 56)
+    pygame.draw.rect(s, (222, 222, 218), pygame.Rect(80, 80, 800, 300))
+    pygame.draw.rect(s, (196, 196, 192), pygame.Rect(80, 80, 800, 26))
+    for y in range(126, 330, 66):
+        for x in range(110, 850, 82):
+            pygame.draw.rect(s, (202, 222, 232), pygame.Rect(x, y, 58, 46))
+            pygame.draw.rect(s, (170, 170, 172), pygame.Rect(x, y, 58, 46), width=2)
+    pygame.draw.rect(s, (206, 214, 220), pygame.Rect(392, 260, 176, 122))      # 自動ドア
+    pygame.draw.line(s, (150, 152, 156), (480, 260), (480, 382), 4)
+    pygame.draw.rect(s, (150, 152, 156), pygame.Rect(376, 240, 208, 22))
+    pygame.draw.rect(s, (164, 164, 166), pygame.Rect(0, 382, C.SCREEN_W, 158))
+    for x in range(40, C.SCREEN_W, 120):
+        pygame.draw.line(s, (186, 186, 186), (x, 440), (x + 80, 440), 3)
+
+
 def _bg_black(s):
     s.fill(C.INK)
 
@@ -548,6 +822,18 @@ _BUILDERS = {
     "supermarket": _bg_supermarket,
     "dream_home": _bg_dream_home,
     "dream_home_dark": _bg_dream_home_dark,
+    "living_real": _bg_living_real,
+    "office": _bg_office,
+    "park_night": _bg_park_night,
+    "park_red": _bg_park_red,
+    "ward_room": _bg_ward_room,
+    "counsel": _bg_counsel,
+    "ward_night": _bg_ward_night,
+    "ward_rest": _bg_ward_rest,
+    "village": _bg_village,
+    "village_edge": _bg_village_edge,
+    "room_clean": _bg_room_clean,
+    "hospital_out": _bg_hospital_out,
 }
 
 _cache: dict[str, pygame.Surface] = {}
@@ -683,6 +969,18 @@ class Background:
         "supermarket": ("dust", (230, 232, 230)),
         "dream_home": ("dust", (250, 226, 180)),
         "dream_home_dark": ("dust", (90, 90, 106)),
+        "living_real": ("dust", (200, 196, 190)),
+        "office": ("dust", (220, 220, 218)),
+        "park_night": ("dust", (150, 156, 176)),
+        "park_red": ("ash", (120, 60, 70)),
+        "ward_room": ("light", (250, 250, 246)),
+        "counsel": ("dust", (230, 226, 218)),
+        "ward_night": ("dust", (110, 130, 116)),
+        "ward_rest": ("dust", (150, 170, 180)),
+        "village": ("light", (255, 250, 226)),
+        "village_edge": ("light", (255, 214, 160)),
+        "room_clean": ("light", (255, 250, 228)),
+        "hospital_out": ("light", (255, 252, 240)),
     }
 
     def __init__(self, name="black"):
@@ -995,6 +1293,89 @@ def _draw_king(surf, cx, base_y, h, t):
             (cx + dx - 5, crown_y), (cx + dx + 5, crown_y), (cx + dx, crown_y - 12)])
 
 
+def _draw_doctor(surf, cx, base_y, h, t):
+    """医者。白衣に、胸ポケットのペン。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (244, 246, 248), (226, 202, 186),
+                           (70, 66, 64), "short", arm_col=(236, 238, 242),
+                           leg_col=(92, 96, 106))
+    pygame.draw.rect(surf, (120, 140, 170), pygame.Rect(
+        cx + int(h * 0.02), base_y - int(h * 0.56), int(h * 0.05), int(h * 0.08)))
+    pygame.draw.line(surf, (206, 210, 216), (cx, base_y - int(h * 0.66)),
+                     (cx, base_y - int(h * 0.30)), 2)
+    # 眼鏡
+    r = max(3, int(head_r * 0.30))
+    eye_y = head_y + int(head_r * 0.16)
+    pygame.draw.circle(surf, (70, 74, 84), (cx - int(head_r * 0.38), eye_y), r, 2)
+    pygame.draw.circle(surf, (70, 74, 84), (cx + int(head_r * 0.38), eye_y), r, 2)
+    pygame.draw.line(surf, (70, 74, 84), (cx - int(head_r * 0.10), eye_y),
+                     (cx + int(head_r * 0.10), eye_y), 2)
+
+
+def _draw_police(surf, cx, base_y, h, t):
+    """警察官。紺の制服と帽子。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (52, 60, 92), (222, 198, 182),
+                           None, "short", arm_col=(46, 54, 84), leg_col=(40, 46, 74))
+    pygame.draw.rect(surf, (36, 42, 66), pygame.Rect(
+        cx - head_r, head_y - int(head_r * 1.05), head_r * 2, int(head_r * 0.7)),
+        border_radius=4)
+    pygame.draw.rect(surf, (28, 32, 52), pygame.Rect(
+        cx - int(head_r * 1.25), head_y - int(head_r * 0.45), int(head_r * 2.5), 6),
+        border_radius=3)
+    pygame.draw.circle(surf, (226, 200, 120), (cx, head_y - int(head_r * 0.74)), 4)
+    pygame.draw.rect(surf, (226, 226, 232), pygame.Rect(
+        cx - int(h * 0.11), base_y - int(h * 0.36), int(h * 0.22), int(h * 0.035)))
+
+
+def _draw_clerk(surf, cx, base_y, h, t):
+    """役場の職員。事務的なスーツ。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (104, 106, 116), (224, 202, 188),
+                           (58, 54, 52), "short", arm_col=(96, 98, 108),
+                           leg_col=(74, 76, 86))
+    pygame.draw.polygon(surf, (226, 228, 232), [
+        (cx - int(h * 0.05), base_y - int(h * 0.68)),
+        (cx + int(h * 0.05), base_y - int(h * 0.68)),
+        (cx, base_y - int(h * 0.52))])
+    pygame.draw.line(surf, (140, 90, 90), (cx, base_y - int(h * 0.64)),
+                     (cx, base_y - int(h * 0.44)), 4)
+
+
+def _draw_mura(surf, cx, base_y, h, t):
+    """村の少女。地味な服と、編んだ髪。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (176, 158, 132), (238, 214, 196),
+                           (92, 70, 56), "long", arm_col=(166, 148, 124))
+    pygame.draw.polygon(surf, (152, 138, 116), [          # スカート
+        (cx - int(h * 0.19), base_y), (cx + int(h * 0.19), base_y),
+        (cx + int(h * 0.11), base_y - int(h * 0.30)),
+        (cx - int(h * 0.11), base_y - int(h * 0.30))])
+    pygame.draw.rect(surf, (198, 188, 168), pygame.Rect(       # エプロン
+        cx - int(h * 0.08), base_y - int(h * 0.30), int(h * 0.16), int(h * 0.26)))
+    pygame.draw.line(surf, (92, 70, 56), (cx + int(head_r * 0.9), head_y),
+                     (cx + int(head_r * 1.1), head_y + int(head_r * 1.5)), 5)
+
+
+def _draw_boku_knife(surf, cx, base_y, h, t):
+    """刃物を握った主人公。"""
+    _draw_boku(surf, cx, base_y, h, t)
+    hand = (cx + int(h * 0.125), base_y - int(h * 0.30))
+    pygame.draw.line(surf, (60, 56, 52), hand, (hand[0] + 4, hand[1] + 12), 6)
+    pygame.draw.polygon(surf, (222, 228, 236), [
+        (hand[0] - 2, hand[1] - 2), (hand[0] + 6, hand[1] - 2),
+        (hand[0] + 10, hand[1] - int(h * 0.20)), (hand[0] + 2, hand[1] - int(h * 0.21))])
+    glow = radial_light(int(h * 0.14), (230, 240, 255), strength=60)
+    surf.blit(glow, glow.get_rect(center=(hand[0] + 6, hand[1] - int(h * 0.12))))
+
+
+def _draw_boku_clean(surf, cx, base_y, h, t):
+    """身なりを整えた主人公。フードを脱いでいる。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (86, 100, 126), (214, 190, 176),
+                           (52, 46, 48), "short", arm_col=(78, 92, 118),
+                           leg_col=(62, 64, 78), eye_col=(48, 48, 60))
+    pygame.draw.polygon(surf, (228, 230, 236), [          # えり
+        (cx - int(h * 0.06), base_y - int(h * 0.70)),
+        (cx + int(h * 0.06), base_y - int(h * 0.70)),
+        (cx, base_y - int(h * 0.58))])
+
+
 CHARACTERS = {
     "yuusha": _draw_yuusha,
     "boku": _draw_boku,
@@ -1009,6 +1390,12 @@ CHARACTERS = {
     "heroine_c": _draw_heroine_c,
     "mother": _draw_mother,
     "king": _draw_king,
+    "doctor": _draw_doctor,
+    "police": _draw_police,
+    "clerk": _draw_clerk,
+    "mura": _draw_mura,
+    "boku_knife": _draw_boku_knife,
+    "boku_clean": _draw_boku_clean,
 }
 
 POSITIONS = {"left": 0.24, "center": 0.5, "right": 0.76}

@@ -67,6 +67,66 @@ STAGES = {
         "speed": 146.0,
         "drain": 10.0,
     },
+    # ---- 第四章：夜の公園をさまよう ----
+    "park_wander": {
+        "bg": "park_night",
+        "label": "夜の公園　― 行くあてがない ―",
+        "goal": "公園の出口",
+        "goal_kind": "park",
+        "watchers": [
+            {"x": 240, "kind": "girl", "period": 2.8, "phase": 0.3, "radius": 130},
+            {"x": 490, "kind": "classmate", "period": 2.6, "phase": 1.2, "radius": 140},
+            {"x": 730, "kind": "mother", "period": 3.0, "phase": 2.2, "radius": 135},
+        ],
+        "shadows": [(150, 196), (400, 440), (650, 690)],
+        "speed": 138.0,
+        "drain": 15.0,
+        "glitch": 1.6,
+    },
+    # ---- 第五章：夜の病棟 ----
+    "ward_pc": {
+        "bg": "ward_night",
+        "label": "消灯後の病棟　― 共有スペースへ ―",
+        "goal": "共有スペース",
+        "goal_kind": "ward",
+        "watchers": [
+            {"x": 320, "kind": "nurse", "period": 4.0, "phase": 0.2, "radius": 120},
+            {"x": 650, "kind": "nurse", "period": 4.6, "phase": 2.0, "radius": 126},
+        ],
+        "shadows": [(150, 212), (470, 536), (762, 830)],
+        "speed": 138.0,
+        "drain": 9.0,
+        "glitch": 1.0,
+    },
+    "staff_room": {
+        "bg": "ward_night",
+        "label": "消灯後の病棟　― 職員室へ ―",
+        "goal": "職員室",
+        "goal_kind": "ward",
+        "watchers": [
+            {"x": 250, "kind": "nurse", "period": 3.4, "phase": 0.5, "radius": 116},
+            {"x": 500, "kind": "doctor", "period": 3.0, "phase": 1.6, "radius": 128},
+            {"x": 742, "kind": "nurse", "period": 3.6, "phase": 2.4, "radius": 120},
+        ],
+        "shadows": [(78, 134), (300, 376), (546, 616), (788, 848)],
+        "speed": 144.0,
+        "drain": 11.0,
+        "glitch": 1.2,
+    },
+    "rest_paper": {
+        "bg": "ward_night",
+        "label": "消灯後の病棟　― 休憩室へ ―",
+        "goal": "休憩室",
+        "goal_kind": "ward",
+        "watchers": [
+            {"x": 300, "kind": "nurse", "period": 3.2, "phase": 0.8, "radius": 120},
+            {"x": 620, "kind": "nurse", "period": 3.0, "phase": 2.1, "radius": 128},
+        ],
+        "shadows": [(120, 186), (398, 506), (716, 790)],
+        "speed": 146.0,
+        "drain": 12.0,
+        "glitch": 1.4,
+    },
     # ---- 第三章：逃走 ----
     "chase": {
         "bg": "corridor_dark",
@@ -261,6 +321,23 @@ class RouteScene(Scene):
             for i in range(4):
                 pygame.draw.rect(surf, (238, 236, 230),
                                  pygame.Rect(goal.x + 10 + i * 28, goal.y + 60, 20, 120))
+        elif kind == "park":
+            pygame.draw.rect(surf, (58, 58, 66), pygame.Rect(goal.centerx - 6, goal.y + 60,
+                                                             12, goal.height - 60))
+            pygame.draw.circle(surf, (232, 224, 190), (goal.centerx, goal.y + 56), 16)
+            g = radial_light(220, (236, 224, 180), strength=80)
+            surf.blit(g, g.get_rect(center=(goal.centerx, goal.y + 56)))
+            pygame.draw.rect(surf, (74, 76, 84), pygame.Rect(goal.x + 6, goal.bottom - 120,
+                                                             100, 46), border_radius=4)
+        elif kind == "ward":
+            pygame.draw.rect(surf, (58, 60, 68), goal)
+            pygame.draw.rect(surf, (86, 90, 98), goal.inflate(-16, -30).move(0, 10),
+                             border_radius=4)
+            pygame.draw.rect(surf, (150, 190, 200), pygame.Rect(
+                goal.x + 26, goal.y + 40, 66, 44))
+            pygame.draw.circle(surf, (190, 192, 196), (goal.right - 34, goal.centery), 6)
+            g = radial_light(120, (160, 200, 210), strength=54)
+            surf.blit(g, g.get_rect(center=goal.center))
         elif kind == "home":
             pygame.draw.rect(surf, (168, 152, 140), goal.inflate(0, -60).move(0, 30))
             pygame.draw.polygon(surf, (120, 86, 76), [
@@ -275,7 +352,7 @@ class RouteScene(Scene):
                 pygame.draw.rect(surf, (214, 230, 236), pygame.Rect(goal.x + 12, y, 40, 30))
                 pygame.draw.rect(surf, (214, 230, 236), pygame.Rect(goal.x + 64, y, 40, 30))
         draw_text_center(surf, self.stage["goal"], get_font(17, bold=True),
-                         C.PAPER if kind == "corridor" else C.INK,
+                         C.PAPER if kind in ("corridor", "ward", "park") else C.INK,
                          (goal.centerx - 10, goal.y - 18))
 
     def _draw_hud(self, surf):
@@ -286,7 +363,7 @@ class RouteScene(Scene):
                          (268, 30), alpha=130)
         pygame.draw.rect(surf, (24, 26, 38), bar, border_radius=6)
         inner = bar.inflate(-6, -6)
-        inner.width = int(inner.width * self.shouki / 100)
+        inner.width = int(inner.width * min(100, max(0, self.shouki)) / 100)
         if inner.width:
             ratio = self.shouki / 100
             color = C.MIST if ratio > 0.5 else (C.WARM if ratio > 0.25 else C.DEEP_RED)

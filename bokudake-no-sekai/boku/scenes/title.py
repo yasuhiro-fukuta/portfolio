@@ -20,7 +20,7 @@ ENDING_NAMES = {
     "wasureru": "幸せな勇者",
     "hodou": "白い音",
     "mitasareta": "満たされた世界",
-    "tsuzuku": "つづく",
+    "kimeru": "俺が決める",
 }
 
 
