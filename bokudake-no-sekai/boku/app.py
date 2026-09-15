@@ -57,7 +57,7 @@ class App:
         pygame.init()
         try:                                   # 音が出せない環境でも動かす
             pygame.mixer.init()
-        except pygame.error:
+        except Exception:                      # noqa: BLE001  ドライバ不在など
             pass
 
         self.headless = headless

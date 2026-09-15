@@ -25,18 +25,20 @@ START_X = 54
 
 STAGES = {
     # ---- 第二章：おつかい ----
+    # かげは、それぞれの 視線の 手前に 置いてある。
+    # 「見られる前に かげへ、目を そらした すきに 進む」が 基本。
     "school": {
         "bg": "street_night",
         "label": "学校へ　― プリントを だす ―",
         "goal": "がっこう",
         "goal_kind": "school",
         "watchers": [
-            {"x": 330, "kind": "father", "period": 3.6, "phase": 0.0, "radius": 130},
-            {"x": 660, "kind": "classmate", "period": 4.2, "phase": 1.8, "radius": 140},
+            {"x": 330, "kind": "father", "period": 3.8, "phase": 0.0, "radius": 118},
+            {"x": 660, "kind": "classmate", "period": 4.4, "phase": 1.9, "radius": 124},
         ],
-        "shadows": [(240, 320), (520, 600), (770, 840)],
-        "speed": 140.0,
-        "drain": 13.0,
+        "shadows": [(140, 206), (466, 532), (752, 826)],
+        "speed": 142.0,
+        "drain": 9.0,
     },
     "super": {
         "bg": "street_night",
@@ -44,13 +46,13 @@ STAGES = {
         "goal": "スーパー",
         "goal_kind": "shop",
         "watchers": [
-            {"x": 250, "kind": "classmate", "period": 3.0, "phase": 0.4, "radius": 132},
-            {"x": 500, "kind": "mother", "period": 2.6, "phase": 1.1, "radius": 150},
-            {"x": 730, "kind": "classmate", "period": 3.4, "phase": 2.2, "radius": 140},
+            {"x": 250, "kind": "classmate", "period": 3.4, "phase": 0.4, "radius": 112},
+            {"x": 500, "kind": "girl", "period": 3.0, "phase": 1.3, "radius": 122},
+            {"x": 740, "kind": "classmate", "period": 3.6, "phase": 2.3, "radius": 118},
         ],
-        "shadows": [(180, 240), (420, 470), (620, 680), (820, 862)],
+        "shadows": [(72, 132), (296, 374), (540, 614), (784, 846)],
         "speed": 146.0,
-        "drain": 16.0,
+        "drain": 10.0,
     },
     "home": {
         "bg": "street_night",
@@ -58,29 +60,29 @@ STAGES = {
         "goal": "いえ",
         "goal_kind": "home",
         "watchers": [
-            {"x": 300, "kind": "girl", "period": 3.4, "phase": 0.6, "radius": 126},
-            {"x": 620, "kind": "classmate", "period": 2.8, "phase": 2.0, "radius": 148},
+            {"x": 300, "kind": "girl", "period": 3.6, "phase": 0.6, "radius": 114},
+            {"x": 640, "kind": "classmate", "period": 3.2, "phase": 2.0, "radius": 126},
         ],
-        "shadows": [(220, 280), (480, 540), (740, 800)],
+        "shadows": [(118, 182), (396, 508), (716, 792)],
         "speed": 146.0,
-        "drain": 15.0,
+        "drain": 10.0,
     },
     # ---- 第三章：逃走 ----
     "chase": {
+        "bg": "corridor_dark",
         "label": "にげろ",
         "goal": "むこう",
         "goal_kind": "corridor",
-        "bg": "corridor_dark",
         "chase": True,
         "pursuers": [
-            {"kind": "classmate", "x": -60, "speed": 122.0},
-            {"kind": "classmate", "x": -150, "speed": 116.0},
-            {"kind": "classmate", "x": -240, "speed": 128.0},
+            {"kind": "classmate", "x": -60, "speed": 120.0},
+            {"kind": "classmate", "x": -150, "speed": 114.0},
+            {"kind": "classmate", "x": -240, "speed": 126.0},
         ],
         "watchers": [],
         "shadows": [],
         "speed": 158.0,
-        "drain": 30.0,
+        "drain": 26.0,
         "glitch": 2.4,
     },
 }
@@ -117,7 +119,7 @@ class RouteScene(Scene):
 
     def _watching(self, w) -> bool:
         cycle = (self.time + w["phase"]) % w["period"]
-        return cycle < w["period"] * 0.55
+        return cycle < w["period"] * 0.46
 
     def _in_shadow(self) -> bool:
         return any(a <= self.x <= b for a, b in self.stage["shadows"])
@@ -186,7 +188,7 @@ class RouteScene(Scene):
         if self.seen_now:
             self._damage(self.stage["drain"] * dt)
         elif self._in_shadow():
-            self._damage(-4.0 * dt)          # かげでは すこし ととのう
+            self._damage(-7.0 * dt)          # かげでは すこし ととのう
 
         if self.phase == "play" and self.x >= GOAL_X - 2:
             self.phase = "done"

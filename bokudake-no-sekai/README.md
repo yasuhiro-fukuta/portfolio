@@ -35,6 +35,16 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
+Windows（PowerShell）の場合は、`&&` が使えないバージョンがあるので 1 行ずつ実行してください。
+コマンドは `python3` ではなく `python`（または `py`）です。
+
+```powershell
+git clone -b claude/pensive-meitner-nc7790 https://github.com/yasuhiro-fukuta/portfolio.git
+cd portfolio\bokudake-no-sekai
+python -m pip install -r requirements.txt
+python main.py
+```
+
 | 操作 | 内容 |
 | --- | --- |
 | `Z` / `Enter` / `Space` / クリック | 読みすすめる・決定 |
