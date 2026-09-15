@@ -33,11 +33,11 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 # （名前, 開始ラベル, 終了条件のラベル, 選択肢, 出力名）
 CHAPTERS = {
-    "1": {"title": "第一章 まもったせかい", "start": None, "stop_label": "ch2_start",
+    "1": {"title": "第一章 まもった世界", "start": None, "stop_label": "ch2_start",
           "choices": [1, 1], "file": "ch1_matta_sekai.mp4"},
-    "2": {"title": "第二章 めがさめる", "start": "ch2_start", "stop_label": "ch3_start",
+    "2": {"title": "第二章 目が覚める", "start": "ch2_start", "stop_label": "ch3_start",
           "choices": [0], "file": "ch2_megasameru.mp4"},
-    "3": {"title": "第三章 また、ゆめのなかで", "start": "ch3_start", "stop_label": None,
+    "3": {"title": "第三章 また、夢の中で", "start": "ch3_start", "stop_label": None,
           "choices": [0, 0, 1], "file": "ch3_yume_no_naka.mp4"},
 }
 
@@ -155,7 +155,7 @@ def record_chapter(key: str, out_dir: str, max_seconds: int = 900) -> str:
                 if scene.msg.finished:
                     if hold <= 0 and not reading:
                         # 読み終わるまでの ま（文字数に応じて）
-                        hold = min(2.4, 0.34 + len(scene.msg.full_text) * 0.040)
+                        hold = min(2.6, 0.40 + len(scene.msg.full_text) * 0.052)
                         reading = True
                     elif hold <= 0 and reading:
                         reading = False
@@ -164,7 +164,7 @@ def record_chapter(key: str, out_dir: str, max_seconds: int = 900) -> str:
                 if scene.caption_text != last_text:
                     last_text = scene.caption_text
                     log.append(f"〔{scene.caption_text}〕")
-                    hold = min(4.0, 1.5 + len(scene.caption_text) * 0.055)
+                    hold = min(4.2, 1.6 + len(scene.caption_text) * 0.065)
                 elif hold <= 0:
                     scene._advance()
             elif scene.mode == "choice" and scene.menu:
@@ -191,7 +191,7 @@ def record_chapter(key: str, out_dir: str, max_seconds: int = 900) -> str:
                     hold = 0.0
                 if scene.msg.finished:
                     if hold <= 0 and not reading:
-                        hold = min(2.4, 0.34 + len(scene.msg.full_text) * 0.040)
+                        hold = min(2.6, 0.40 + len(scene.msg.full_text) * 0.052)
                         reading = True
                     elif hold <= 0 and reading:
                         reading = False
