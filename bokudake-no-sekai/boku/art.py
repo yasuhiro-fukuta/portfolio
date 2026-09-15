@@ -271,22 +271,50 @@ def _bg_outside_night(s):
     s.blit(glow2, glow2.get_rect(center=(185, 176)))
 
 
-def _bg_street_morning(s):
-    """あさの つうがくろ。"""
-    s.blit(vertical_gradient(SIZE, (150, 184, 214), (224, 214, 196)), (0, 0))
-    pygame.draw.circle(s, (255, 246, 216), (820, 96), 52)
+def _street(s, night: bool):
+    """住宅街のみち。night=True なら よるの いろ。"""
+    if night:
+        s.blit(vertical_gradient(SIZE, (22, 26, 48), (52, 52, 70)), (0, 0))
+        _stars(s, 90, (0, 220), rng=random.Random(9))
+        pygame.draw.circle(s, (238, 236, 214), (820, 92), 38)
+        wall, roof, win_on, road, curb = ((52, 50, 62), (38, 32, 40),
+                                          (232, 202, 134), (44, 44, 54), (66, 66, 76))
+    else:
+        s.blit(vertical_gradient(SIZE, (150, 184, 214), (224, 214, 196)), (0, 0))
+        pygame.draw.circle(s, (255, 246, 216), (820, 96), 52)
+        wall, roof, win_on, road, curb = ((188, 182, 176), (128, 106, 98),
+                                          (150, 176, 190), (110, 110, 118), (150, 148, 150))
     rng = random.Random(41)
     for x in range(-40, C.SCREEN_W, 140):
         h = rng.randint(110, 170)
         rect = pygame.Rect(x, 360 - h, 120, h)
-        pygame.draw.rect(s, (188, 182, 176), rect)
-        pygame.draw.polygon(s, (128, 106, 98), [(rect.x - 10, rect.y), (rect.right + 10, rect.y),
-                                                (rect.centerx, rect.y - 30)])
-        pygame.draw.rect(s, (150, 176, 190), pygame.Rect(rect.x + 40, rect.y + 40, 30, 28))
-    pygame.draw.rect(s, (110, 110, 118), pygame.Rect(0, 360, C.SCREEN_W, 180))
-    pygame.draw.rect(s, (150, 148, 150), pygame.Rect(0, 360, C.SCREEN_W, 14))
+        pygame.draw.rect(s, wall, rect)
+        pygame.draw.polygon(s, roof, [(rect.x - 10, rect.y), (rect.right + 10, rect.y),
+                                      (rect.centerx, rect.y - 30)])
+        lit = (not night) or rng.random() < 0.55
+        pygame.draw.rect(s, win_on if lit else (40, 40, 52),
+                         pygame.Rect(rect.x + 40, rect.y + 40, 30, 28))
+    pygame.draw.rect(s, road, pygame.Rect(0, 360, C.SCREEN_W, 180))
+    pygame.draw.rect(s, curb, pygame.Rect(0, 360, C.SCREEN_W, 14))
     for x in range(20, C.SCREEN_W, 120):
-        pygame.draw.rect(s, (220, 220, 214), pygame.Rect(x, 452, 70, 8))
+        pygame.draw.rect(s, (220, 220, 214) if not night else (150, 150, 158),
+                         pygame.Rect(x, 452, 70, 8))
+    if night:
+        for x in range(120, C.SCREEN_W, 320):
+            pygame.draw.rect(s, (60, 60, 70), pygame.Rect(x - 5, 200, 10, 160))
+            pygame.draw.circle(s, (232, 228, 196), (x, 196), 12)
+            g = radial_light(180, (240, 226, 178), strength=70)
+            s.blit(g, g.get_rect(center=(x, 196)))
+
+
+def _bg_street_morning(s):
+    """あさの つうがくろ。"""
+    _street(s, night=False)
+
+
+def _bg_street_night(s):
+    """よるの じゅうたくがい。おつかいの みち。"""
+    _street(s, night=True)
 
 
 def _bg_hoken(s):
@@ -313,6 +341,182 @@ def _bg_hoken(s):
     pygame.draw.rect(s, (140, 124, 108), pygame.Rect(834, 344, 12, 60))
 
 
+def _bg_ball_room(s):
+    """舞踏会の広間。シャンデリアと、顔のない人影たち。"""
+    s.blit(vertical_gradient(SIZE, (64, 48, 78), (40, 30, 48)), (0, 0))
+    pygame.draw.polygon(s, (110, 76, 88), [(0, 300), (C.SCREEN_W, 300),
+                                           (C.SCREEN_W, C.SCREEN_H), (0, C.SCREEN_H)])
+    for i in range(14):                      # 市松の床
+        for j in range(5):
+            if (i + j) % 2 == 0:
+                pygame.draw.polygon(s, (126, 92, 102), [
+                    (i * 80 - 40 + j * 10, 320 + j * 46), (i * 80 + 40 + j * 10, 320 + j * 46),
+                    (i * 80 + 46 + j * 12, 366 + j * 46), (i * 80 - 46 + j * 12, 366 + j * 46)])
+    for x in (100, 860):                     # 柱
+        pygame.draw.rect(s, (96, 82, 106), pygame.Rect(x - 26, 40, 52, 264))
+        pygame.draw.rect(s, (124, 108, 134), pygame.Rect(x - 34, 30, 68, 20))
+    win = pygame.Rect(370, 40, 220, 220)     # 大窓
+    pygame.draw.rect(s, (72, 60, 88), win.inflate(18, 18), border_radius=110)
+    pygame.draw.rect(s, (40, 46, 84), win, border_radius=106)
+    pygame.draw.circle(s, (238, 232, 206), (480, 110), 26)
+    # シャンデリア
+    pygame.draw.line(s, (120, 104, 78), (480, 0), (480, 60), 3)
+    for r, a in ((54, 90), (38, 120), (22, 150)):
+        pygame.draw.circle(s, (206, 178, 110), (480, 70), r, 2)
+    for dx in (-44, -22, 0, 22, 44):
+        pygame.draw.circle(s, (252, 236, 180), (480 + dx, 78 + abs(dx) // 4), 5)
+        g = radial_light(60, (252, 236, 180), strength=70)
+        s.blit(g, g.get_rect(center=(480 + dx, 78 + abs(dx) // 4)))
+    # 踊る人影
+    rng = random.Random(55)
+    for _ in range(9):
+        x = rng.randint(60, C.SCREEN_W - 60)
+        y = rng.randint(300, 420)
+        h = int(60 + (y - 300) * 0.5)
+        col = (56, 44, 62)
+        pygame.draw.ellipse(s, col, pygame.Rect(x - h // 5, y - h, h * 2 // 5, h))
+        pygame.draw.circle(s, col, (x, y - h), h // 7)
+
+
+def _bg_bedroom(s):
+    """天蓋つきの寝室。ろうそくの あかり。"""
+    s.blit(vertical_gradient(SIZE, (58, 38, 48), (34, 22, 30)), (0, 0))
+    pygame.draw.rect(s, (72, 48, 46), pygame.Rect(0, 390, C.SCREEN_W, 150))
+    pygame.draw.rect(s, (120, 66, 74), pygame.Rect(280, 300, 400, 130), border_radius=6)
+    pygame.draw.rect(s, (216, 202, 196), pygame.Rect(300, 286, 360, 40), border_radius=10)
+    pygame.draw.rect(s, (236, 228, 222), pygame.Rect(320, 274, 110, 34), border_radius=10)
+    for x in (270, 690):                     # 天蓋の柱
+        pygame.draw.rect(s, (86, 56, 52), pygame.Rect(x - 8, 90, 16, 320))
+    pygame.draw.rect(s, (86, 56, 52), pygame.Rect(262, 84, 436, 16), border_radius=6)
+    for i, x in enumerate(range(270, 700, 60)):   # 天蓋の布
+        pygame.draw.polygon(s, (150, 76, 92), [(x, 100), (x + 60, 100), (x + 30, 140)])
+    for x in (150, 820):                     # ろうそく
+        pygame.draw.rect(s, (226, 214, 190), pygame.Rect(x - 6, 300, 12, 70))
+        pygame.draw.circle(s, (252, 226, 150), (x, 292), 8)
+        g = radial_light(150, (250, 208, 130), strength=80)
+        s.blit(g, g.get_rect(center=(x, 292)))
+
+
+def _bg_corridor_dark(s):
+    """まっくらな 学校の 廊下。奥に いくほど くらい。"""
+    s.fill((14, 14, 20))
+    # 遠近のある廊下
+    pygame.draw.polygon(s, (30, 30, 40), [(0, 60), (C.SCREEN_W, 60),
+                                          (620, 220), (340, 220)])       # 天井
+    pygame.draw.polygon(s, (42, 40, 48), [(0, C.SCREEN_H), (C.SCREEN_W, C.SCREEN_H),
+                                          (620, 300), (340, 300)])       # 床
+    pygame.draw.polygon(s, (36, 34, 44), [(0, 60), (340, 220), (340, 300), (0, C.SCREEN_H)])
+    pygame.draw.polygon(s, (28, 28, 36), [(C.SCREEN_W, 60), (620, 220),
+                                          (620, 300), (C.SCREEN_W, C.SCREEN_H)])
+    # 教室のドアと窓（左右）
+    for i, (x0, x1) in enumerate([(30, 150), (170, 280), (300, 336)]):
+        pygame.draw.rect(s, (52, 50, 60), pygame.Rect(x0, 150 + i * 14, x1 - x0, 160 - i * 20))
+        pygame.draw.rect(s, (86, 96, 100), pygame.Rect(x0 + 8, 160 + i * 14, (x1 - x0) - 16, 40))
+    for i, (x0, x1) in enumerate([(810, 930), (690, 800), (624, 680)]):
+        pygame.draw.rect(s, (52, 50, 60), pygame.Rect(x0, 150 + i * 14, x1 - x0, 160 - i * 20))
+        pygame.draw.rect(s, (86, 96, 100), pygame.Rect(x0 + 8, 160 + i * 14, (x1 - x0) - 16, 40))
+    # 教室から もれる あかり（泣き声の する 部屋）
+    pygame.draw.rect(s, (214, 206, 160), pygame.Rect(178, 174, 96, 34))
+    pygame.draw.polygon(s, (120, 112, 86), [(170, 208), (280, 208), (330, 330), (150, 330)])
+    spill = radial_light(190, (250, 236, 176), strength=54)
+    s.blit(spill, spill.get_rect(center=(232, 266)))
+
+    # 奥の非常口の みどりの あかり
+    pygame.draw.rect(s, (60, 140, 90), pygame.Rect(452, 214, 56, 20))
+    g = radial_light(120, (80, 200, 130), strength=60)
+    s.blit(g, g.get_rect(center=(480, 224)))
+
+
+def _bg_school_out(s):
+    """学校の 校舎前。ひるまなのに、いろが うすい。"""
+    s.blit(vertical_gradient(SIZE, (150, 172, 196), (208, 206, 198)), (0, 0))
+    pygame.draw.rect(s, (188, 184, 176), pygame.Rect(120, 120, 720, 260))
+    pygame.draw.rect(s, (160, 156, 148), pygame.Rect(120, 120, 720, 24))
+    for y in range(160, 360, 62):
+        for x in range(150, 820, 72):
+            pygame.draw.rect(s, (206, 222, 230), pygame.Rect(x, y, 52, 42))
+            pygame.draw.rect(s, (150, 150, 154), pygame.Rect(x, y, 52, 42), width=2)
+    pygame.draw.rect(s, (140, 136, 130), pygame.Rect(430, 300, 100, 80))
+    pygame.draw.rect(s, (168, 164, 158), pygame.Rect(0, 380, C.SCREEN_W, 160))
+    for x in range(40, C.SCREEN_W, 160):     # 校庭のライン
+        pygame.draw.line(s, (196, 192, 186), (x, 440), (x + 90, 440), 3)
+
+
+def _bg_supermarket(s):
+    """スーパーの なか。蛍光灯が しろい。"""
+    s.blit(vertical_gradient(SIZE, (232, 234, 232), (206, 208, 206)), (0, 0))
+    pygame.draw.rect(s, (188, 186, 184), pygame.Rect(0, 400, C.SCREEN_W, 140))
+    for x in range(0, C.SCREEN_W, 68):       # 床タイル
+        pygame.draw.line(s, (176, 176, 174), (x, 400), (x - 50, C.SCREEN_H), 2)
+    for x in range(60, C.SCREEN_W, 300):     # 蛍光灯
+        pygame.draw.rect(s, (250, 250, 244), pygame.Rect(x, 40, 220, 14), border_radius=4)
+        g = radial_light(180, (255, 255, 240), strength=60)
+        s.blit(g, g.get_rect(center=(x + 110, 54)))
+    # 商品棚
+    rng = random.Random(63)
+    for i, x in enumerate((60, 380)):
+        pygame.draw.rect(s, (168, 170, 172), pygame.Rect(x, 190, 220, 210))
+        for y in range(206, 390, 44):
+            pygame.draw.rect(s, (148, 150, 152), pygame.Rect(x, y + 34, 220, 8))
+            for k in range(6):
+                col = rng.choice([(206, 128, 108), (150, 176, 140), (222, 208, 150),
+                                  (140, 156, 198), (216, 160, 190)])
+                pygame.draw.rect(s, col, pygame.Rect(x + 10 + k * 34, y, 26, 34))
+    # 冷蔵ケース（牛乳）
+    case = pygame.Rect(690, 160, 230, 250)
+    pygame.draw.rect(s, (156, 168, 176), case)
+    pygame.draw.rect(s, (206, 228, 236), case.inflate(-16, -26))
+    for y in range(190, 380, 46):
+        pygame.draw.rect(s, (140, 152, 160), pygame.Rect(case.x + 8, y + 36, case.w - 16, 6))
+        for k in range(5):
+            pygame.draw.rect(s, (246, 246, 250),
+                             pygame.Rect(case.x + 18 + k * 40, y, 28, 36))
+            pygame.draw.rect(s, (130, 170, 210),
+                             pygame.Rect(case.x + 18 + k * 40, y, 28, 10))
+
+
+def _bg_dream_home(s, blackout=False):
+    """夢の家の リビング。あたたかい 食卓。"""
+    if blackout:
+        s.blit(vertical_gradient(SIZE, (26, 26, 34), (14, 14, 20)), (0, 0))
+        wall, floor, table = (38, 36, 44), (30, 28, 34), (44, 38, 38)
+    else:
+        s.blit(vertical_gradient(SIZE, (188, 162, 132), (150, 124, 100)), (0, 0))
+        wall, floor, table = (196, 168, 136), (128, 96, 74), (156, 110, 78)
+    pygame.draw.rect(s, floor, pygame.Rect(0, 386, C.SCREEN_W, 154))
+    pygame.draw.line(s, (90, 70, 56) if not blackout else (20, 20, 26),
+                     (0, 386), (C.SCREEN_W, 386), 3)
+    # 窓
+    win = pygame.Rect(96, 110, 190, 150)
+    pygame.draw.rect(s, (110, 82, 62) if not blackout else (28, 28, 34), win.inflate(16, 16))
+    pygame.draw.rect(s, (238, 226, 190) if not blackout else (38, 40, 52), win)
+    pygame.draw.line(s, (110, 82, 62) if not blackout else (28, 28, 34),
+                     (win.centerx, win.y), (win.centerx, win.bottom), 5)
+    # 食卓
+    pygame.draw.rect(s, table, pygame.Rect(300, 344, 400, 20), border_radius=4)
+    pygame.draw.rect(s, tuple(max(0, c - 20) for c in table), pygame.Rect(330, 364, 16, 80))
+    pygame.draw.rect(s, tuple(max(0, c - 20) for c in table), pygame.Rect(654, 364, 16, 80))
+    for dx in (-110, 0, 110):                # 食器
+        pygame.draw.ellipse(s, (240, 238, 232) if not blackout else (60, 60, 68),
+                            pygame.Rect(440 + dx, 330, 70, 20))
+    if not blackout:
+        pygame.draw.rect(s, (230, 210, 170), pygame.Rect(470, 300, 40, 32), border_radius=4)
+        g = radial_light(260, (255, 226, 170), strength=70)
+        s.blit(g, g.get_rect(center=(480, 200)))
+        pygame.draw.circle(s, (250, 232, 180), (480, 96), 20)      # 照明
+        pygame.draw.line(s, (120, 100, 80), (480, 0), (480, 84), 3)
+    else:
+        pygame.draw.circle(s, (54, 54, 62), (480, 96), 20)
+        pygame.draw.line(s, (40, 38, 44), (480, 0), (480, 84), 3)
+        # ブレーカーの ある かべ
+        pygame.draw.rect(s, (58, 58, 66), pygame.Rect(806, 150, 70, 90))
+        pygame.draw.rect(s, (80, 80, 90), pygame.Rect(816, 166, 50, 20))
+
+
+def _bg_dream_home_dark(s):
+    _bg_dream_home(s, blackout=True)
+
+
 def _bg_black(s):
     s.fill(C.INK)
 
@@ -335,7 +539,15 @@ _BUILDERS = {
     "room_dark": _bg_room_dark,
     "outside_night": _bg_outside_night,
     "street_morning": _bg_street_morning,
+    "street_night": _bg_street_night,
     "hoken": _bg_hoken,
+    "ball_room": _bg_ball_room,
+    "bedroom": _bg_bedroom,
+    "corridor_dark": _bg_corridor_dark,
+    "school_out": _bg_school_out,
+    "supermarket": _bg_supermarket,
+    "dream_home": _bg_dream_home,
+    "dream_home_dark": _bg_dream_home_dark,
 }
 
 _cache: dict[str, pygame.Surface] = {}
@@ -410,7 +622,15 @@ class Background:
         "room_dark": ("dust", (120, 124, 140)),
         "outside_night": ("dust", (150, 154, 170)),
         "street_morning": ("light", (255, 248, 230)),
+        "street_night": ("dust", (170, 176, 196)),
         "hoken": ("light", (255, 252, 240)),
+        "ball_room": ("light", (250, 226, 170)),
+        "bedroom": ("light", (250, 210, 150)),
+        "corridor_dark": ("dust", (90, 96, 110)),
+        "school_out": ("light", (255, 250, 236)),
+        "supermarket": ("dust", (230, 232, 230)),
+        "dream_home": ("dust", (250, 226, 180)),
+        "dream_home_dark": ("dust", (90, 90, 106)),
     }
 
     def __init__(self, name="black"):
@@ -599,8 +819,8 @@ def _draw_riina(surf, cx, base_y, h, t):
                                 int(head_r * 0.68), int(head_r * 0.5)), 3.34, 6.08, 2)
 
 
-def _draw_minami(surf, cx, base_y, h, t):
-    """みなみ。リィナの モデルに なった、げんじつの クラスメート。"""
+def _draw_girl(surf, cx, base_y, h, t):
+    """げんじつの 女子。セーラー服。"""
     _body(surf, cx, base_y, h, (72, 88, 116), (222, 200, 186), (74, 58, 54), "long",
           arm_col=(66, 80, 106), leg_col=(214, 196, 182))
     pygame.draw.polygon(surf, (58, 70, 96), [             # セーラーのスカート
@@ -654,15 +874,89 @@ def _draw_bug(surf, cx, base_y, h, t):
     pygame.draw.circle(surf, (250, 250, 255), (cx + 10, base_y - int(h2 * 0.88)), 4)
 
 
+def _draw_princess(surf, cx, base_y, h, t):
+    """国王の むすめ。ドレスと ティアラ。"""
+    glow = radial_light(int(h * 0.5), (250, 220, 240), strength=48)
+    surf.blit(glow, glow.get_rect(center=(cx, base_y - int(h * 0.5))))
+    head_y, head_r = _body(surf, cx, base_y, h, (236, 222, 236), (244, 222, 208),
+                           (222, 196, 150), "long", arm_col=(232, 216, 232))
+    pygame.draw.polygon(surf, (222, 200, 232), [      # ドレスの すそ
+        (cx - int(h * 0.26), base_y), (cx + int(h * 0.26), base_y),
+        (cx + int(h * 0.11), base_y - int(h * 0.34)),
+        (cx - int(h * 0.11), base_y - int(h * 0.34))])
+    pygame.draw.rect(surf, (200, 168, 210), pygame.Rect(
+        cx - int(h * 0.12), base_y - int(h * 0.37), int(h * 0.24), int(h * 0.035)))
+    for i, dx in enumerate((-10, 0, 10)):             # ティアラ
+        pygame.draw.polygon(surf, (250, 226, 140), [
+            (cx + dx - 6, head_y - int(head_r * 1.0)),
+            (cx + dx + 6, head_y - int(head_r * 1.0)),
+            (cx + dx, head_y - int(head_r * 1.34))])
+
+
+def _draw_heroine_b(surf, cx, base_y, h, t):
+    """ヒロインその二。"""
+    _body(surf, cx, base_y, h, (222, 236, 234), (240, 216, 202), (120, 170, 186), "long",
+          arm_col=(214, 230, 228))
+    pygame.draw.polygon(surf, (206, 230, 228), [
+        (cx - int(h * 0.19), base_y), (cx + int(h * 0.19), base_y),
+        (cx + int(h * 0.11), base_y - int(h * 0.30)),
+        (cx - int(h * 0.11), base_y - int(h * 0.30))])
+
+
+def _draw_heroine_c(surf, cx, base_y, h, t):
+    """ヒロインその三。"""
+    _body(surf, cx, base_y, h, (240, 228, 214), (238, 214, 198), (96, 78, 70), "short",
+          arm_col=(232, 220, 206))
+    pygame.draw.polygon(surf, (228, 214, 198), [
+        (cx - int(h * 0.19), base_y), (cx + int(h * 0.19), base_y),
+        (cx + int(h * 0.11), base_y - int(h * 0.30)),
+        (cx - int(h * 0.11), base_y - int(h * 0.30))])
+    pygame.draw.rect(surf, (200, 150, 120), pygame.Rect(
+        cx - int(h * 0.12), base_y - int(h * 0.33), int(h * 0.24), int(h * 0.03)))
+
+
+def _draw_mother(surf, cx, base_y, h, t):
+    """やさしい母。"""
+    _body(surf, cx, base_y, h, (196, 170, 156), (226, 200, 186), (104, 82, 72), "long",
+          arm_col=(186, 160, 148))
+    pygame.draw.polygon(surf, (176, 150, 140), [      # エプロン
+        (cx - int(h * 0.10), base_y - int(h * 0.56)), (cx + int(h * 0.10), base_y - int(h * 0.56)),
+        (cx + int(h * 0.13), base_y - int(h * 0.04)), (cx - int(h * 0.13), base_y - int(h * 0.04))])
+
+
+def _draw_king(surf, cx, base_y, h, t):
+    """国王。"""
+    head_y, head_r = _body(surf, cx, base_y, h, (132, 64, 74), (214, 190, 174),
+                           (222, 218, 212), "short", arm_col=(118, 56, 66))
+    pygame.draw.polygon(surf, (150, 74, 84), [
+        (cx - int(h * 0.22), base_y), (cx + int(h * 0.22), base_y),
+        (cx + int(h * 0.12), base_y - int(h * 0.40)),
+        (cx - int(h * 0.12), base_y - int(h * 0.40))])
+    pygame.draw.ellipse(surf, (226, 222, 216), pygame.Rect(   # ひげ
+        cx - int(head_r * 0.8), head_y + int(head_r * 0.4),
+        int(head_r * 1.6), int(head_r * 1.5)))
+    crown_y = head_y - int(head_r * 1.05)
+    pygame.draw.rect(surf, (244, 208, 110),
+                     pygame.Rect(cx - head_r, crown_y, head_r * 2, int(head_r * 0.4)))
+    for dx in (-head_r + 4, 0, head_r - 4):
+        pygame.draw.polygon(surf, (244, 208, 110), [
+            (cx + dx - 5, crown_y), (cx + dx + 5, crown_y), (cx + dx, crown_y - 12)])
+
+
 CHARACTERS = {
     "yuusha": _draw_yuusha,
     "boku": _draw_boku,
     "riina": _draw_riina,
-    "minami": _draw_minami,
+    "girl": _draw_girl,
     "father": _draw_father,
     "nurse": _draw_nurse,
     "classmate": _draw_classmate,
     "bug": _draw_bug,
+    "princess": _draw_princess,
+    "heroine_b": _draw_heroine_b,
+    "heroine_c": _draw_heroine_c,
+    "mother": _draw_mother,
+    "king": _draw_king,
 }
 
 POSITIONS = {"left": 0.24, "center": 0.5, "right": 0.76}

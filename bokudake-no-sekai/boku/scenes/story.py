@@ -149,12 +149,6 @@ class StoryScene(Scene):
             self.msg.clear()
             self.mode = "choice"
 
-        elif op == "battle":
-            from .battle import BattleScene
-            self.mode = "suspend"
-            self.msg.clear()
-            self.app.push(BattleScene(self.app, a["enemy"]))
-
         elif op == "explore":
             from .explore import ExploreScene
             self.mode = "suspend"
@@ -489,6 +483,20 @@ class StoryScene(Scene):
                              (C.SCREEN_W - 96 - hokorobi * 20, 16), alpha=140)
             for i in range(hokorobi):
                 draw_tear(frame, (C.SCREEN_W - 24 - i * 20, 26), 11, self.time, seed=i)
+        shouki = self.st.get("shouki")
+        if shouki < 100:
+            bar = pygame.Rect(C.SCREEN_W - 196, 44, 160, 12)
+            draw_text_shadow(frame, "正気", get_font(15), C.MIST,
+                             (bar.x - 40, bar.y - 4), alpha=150)
+            pygame.draw.rect(frame, (24, 26, 38), bar, border_radius=4)
+            inner = bar.inflate(-4, -4)
+            inner.width = int(inner.width * max(0, shouki) / 100)
+            if inner.width:
+                ratio = shouki / 100
+                col = C.MIST if ratio > 0.5 else (C.WARM if ratio > 0.25 else C.DEEP_RED)
+                pygame.draw.rect(frame, col, inner, border_radius=3)
+            pygame.draw.rect(frame, C.MIST, bar, width=1, border_radius=4)
+
         if self.hint_time > 0:
             alpha = int(150 * min(1.0, self.hint_time / 1.5))
             hint = "Z / クリック：すすむ　　B：りれき　　ESC：メニュー　　F5/F9：クイックセーブ・ロード"

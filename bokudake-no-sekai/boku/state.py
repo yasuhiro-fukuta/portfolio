@@ -14,11 +14,14 @@ class GameState:
 
     # こころのパラメータ
     flags: dict[str, int] = field(default_factory=lambda: {
-        "jibun": 0,        # じぶん：自分で決めた回数
-        "kizuna": 0,       # きずな：現実でだれかと つながった数
-        "yuusha": 0,       # ゆうしゃ：理想の自分への よりかかり
-        "hokorobi": 0,     # あつめた「ほころび」
-        "day": 0,          # 第三章の日数
+        "hokorobi": 0,        # 見つけた「ほころび」の数
+        "shouki": 100,        # 正気（外に出ているあいだ削られる）
+        "errand_school": 0,   # プリントを出した
+        "errand_super": 0,    # 牛乳を買った
+        "errand_done": 0,     # 終えたおつかいの数
+        "route_ok": 1,        # 直前の外出に成功したか
+        "shouki_broken": 0,   # 正気がゼロになったか
+        "day": 0,
     })
 
     # 画面の状態（セーブ復帰のために持っておく）

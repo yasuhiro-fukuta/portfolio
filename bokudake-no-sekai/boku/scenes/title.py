@@ -18,9 +18,9 @@ from ..ui import (ChoiceMenu, Fader, draw_text_center, draw_text_shadow,
 
 ENDING_NAMES = {
     "wasureru": "しあわせなゆうしゃ",
-    "yuusha": "えいゆうのまま",
-    "futsuu": "ふつうのぼく",
-    "jibun": "ぼくがきめる",
+    "hodou": "しろい おと",
+    "mitasareta": "みたされたせかい",
+    "tsuzuku": "つづく",
 }
 
 

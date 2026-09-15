@@ -18,7 +18,7 @@ scenario/*.txt を読み込み、1本のコマンド列にする。
 
 対応コマンド：
     bg / chara / chapter / caption / say / wait / clear / choice / label /
-    jump / flag / if / battle / explore / route / shake / flash / glitch /
+    jump / flag / if / explore / route / shake / flash / glitch /
     bgm / ending / save
 """
 
@@ -151,9 +151,6 @@ def _parse_line(raw: str, src: str, lineno: int) -> Command | None:
         key, oper, val = _parse_condition(cond)
         return Command("if", {"key": key, "cmp": oper, "value": val,
                               "label": label.strip()}, src, lineno)
-
-    if op == "battle":
-        return Command("battle", {"enemy": rest.strip()}, src, lineno)
 
     if op == "explore":
         return Command("explore", {"room": rest.strip()}, src, lineno)

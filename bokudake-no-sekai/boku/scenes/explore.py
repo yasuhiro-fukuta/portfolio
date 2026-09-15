@@ -49,7 +49,8 @@ class ExploreScene(Scene):
         item = self.items[self.index]
         if item["id"] == "__exit__":
             need = self.room["exit"].get("require", 0)
-            if len(self.seen) < need:
+            need_ids = self.room["exit"].get("require_ids", [])
+            if len(self.seen) < need or any(i not in self.seen for i in need_ids):
                 self.notice = self.room["exit"].get("locked", "まだ すすめない。")
                 self.notice_time = 2.4
                 return

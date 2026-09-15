@@ -19,13 +19,13 @@ import pygame  # noqa: E402
 pygame.init()
 
 from boku import art                       # noqa: E402
-from boku.data.enemies import ENEMIES      # noqa: E402
 from boku.data.rooms import ROOMS          # noqa: E402
 from boku.scenes.ending import ENDINGS     # noqa: E402
 from boku.scenes.route import STAGES       # noqa: E402
 from boku.script import load_script        # noqa: E402
 
-KNOWN_FLAGS = {"jibun", "kizuna", "yuusha", "hokorobi", "day", "route_ok"}
+KNOWN_FLAGS = {"hokorobi", "shouki", "errand_school", "errand_super",
+               "errand_done", "route_ok", "shouki_broken", "day"}
 
 
 def main() -> int:
@@ -40,8 +40,6 @@ def main() -> int:
             errors.append(f"知らない背景 '{a['name']}' ({where})")
         elif cmd.op == "chara" and a.get("id") and a["id"] not in art.CHARACTERS:
             errors.append(f"知らない立ち絵 '{a['id']}' ({where})")
-        elif cmd.op == "battle" and a["enemy"] not in ENEMIES:
-            errors.append(f"知らない敵 '{a['enemy']}' ({where})")
         elif cmd.op == "explore" and a["room"] not in ROOMS:
             errors.append(f"知らない探索先 '{a['room']}' ({where})")
         elif cmd.op == "route" and a["stage"] not in STAGES:

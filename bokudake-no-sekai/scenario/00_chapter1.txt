@@ -58,7 +58,6 @@
 - 町を しらべてみる -> ch1_search
 
 @label ch1_enjoy
-@flag yuusha + 1
 @clear
 @chara clear
 ぼくは かんがえるのを やめた。
@@ -69,7 +68,6 @@
 @jump ch1_search
 
 @label ch1_search
-@flag jibun + 1
 @clear
 @chara clear
 @bg capital_day
@@ -144,7 +142,6 @@
 
 # ---- 追いつづける ----
 @label ch1_chase
-@flag jibun + 1
 @clear
 @glitch 4.0
 @shake 16

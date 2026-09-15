@@ -16,25 +16,33 @@ import pygame  # noqa: E402
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "screenshots")
 
 
-def _advance(scene, frames=1, dt=1 / 60):
+def _save(app, scene, name, frames=1, dt=1 / 60):
     for _ in range(frames):
         scene.time += dt
         scene.update(dt)
-
-
-def _save(app, scene, name, frames=1):
-    _advance(scene, frames)
     app.canvas.fill((0, 0, 0))
     scene.draw(app.canvas)
-    path = os.path.join(OUT, name)
-    pygame.image.save(app.canvas, path)
-    print("saved:", os.path.relpath(path))
+    pygame.image.save(app.canvas, os.path.join(OUT, name))
+    print("saved:", name)
+
+
+def _story_shot(app, story, name, bg, chars, text, speaker="", glitch=0.0, chapter=""):
+    story.mode = "message"
+    story.st.bg = bg
+    story.bg.change(bg, instant=True)
+    story.st.characters = [list(c) for c in chars]
+    story.st.glitch = glitch
+    if chapter:
+        story.st.chapter = chapter
+    story.card = None
+    story.msg.set_text(text, speaker)
+    story.msg.skip()
+    _save(app, story, name, 24)
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     from boku.app import App
-    from boku.scenes.battle import BattleScene
     from boku.scenes.ending import EndingScene
     from boku.scenes.explore import ExploreScene
     from boku.scenes.route import RouteScene
@@ -49,84 +57,80 @@ def main():
     _save(app, title, "01_title.png", 60)
     app.pop()
 
-    # 第一章：王都（ほころびを探す）
     story = StoryScene(app)
     app.push(story)
     story.fader.set(0)
-    for _ in range(84):
-        if story.mode == "message":
-            story.msg.skip()
-            story._advance()
-        elif story.mode == "run":
-            story.step()
-        else:
-            break
-    _save(app, story, "02_story_castle.png", 30)
+    story.hint_time = 0.0
 
-    story.st.bg = "capital_day"
-    story.bg.change("capital_day", instant=True)
-    story.mode = "message"
-    story.st.characters = [["yuusha", "left"], ["riina", "right"]]
-    story.st.glitch = 1.6
-    story.msg.set_text("リィナ：やっぱり わたしの えらんだ ひとは ちが ぁ ぁ", "リィナ")
-    story.msg.skip()
-    _save(app, story, "03_glitch.png", 30)
-
-    story.st.bg = "capital_broken"
-    story.bg.change("capital_broken", instant=True)
-    story.mode = "message"
-    story.st.characters = [["bug", "center"]]
-    story.st.glitch = 4.2
-    story.msg.set_text("ほころび：目を 覚ますな！！", "ほころび")
-    story.msg.skip()
-    _save(app, story, "04_broken.png", 20)
-
-    story.st.bg = "room_pc"
-    story.bg.change("room_pc", instant=True)
-    story.mode = "message"
-    story.st.characters = [["boku", "right"]]
-    story.st.glitch = 0.0
-    story.st.flags["hokorobi"] = 4
-    story.st.chapter = "第二章"
-    story.msg.set_text("モニタには、かきかけの コードが ひらいたまま。", "")
-    story.msg.skip()
-    _save(app, story, "05_room.png", 20)
+    _story_shot(app, story, "02_castle.png", "castle_hall",
+                [["yuusha", "center"], ["king", "right"]],
+                "国王：よくぞ 参られた、わが国の 英雄よ。", "国王", chapter="第一章")
+    _story_shot(app, story, "03_glitch.png", "capital_day",
+                [["yuusha", "left"], ["riina", "right"]],
+                "やっぱり わたしの えらんだ ひとは ちが ぁ ぁ", "リィナ", glitch=1.8)
+    _story_shot(app, story, "04_broken.png", "capital_broken", [["bug", "center"]],
+                "目を 覚ますな！！", "ほころび", glitch=4.4)
+    story.st.flags["shouki"] = 46
+    _story_shot(app, story, "05_father.png", "outside_night", [["father", "right"]],
+                "学校も 行かない、働きも しないなら、それくらいの 役に 立て。", "父さん",
+                chapter="第二章")
+    _story_shot(app, story, "06_ballroom.png", "ball_room", [["princess", "center"]],
+                "……こんな 席、ぬけだして しまいませんか。", "娘", chapter="第三章")
+    _story_shot(app, story, "07_corridor.png", "corridor_dark", [],
+                "まじで キモすぎるよね。あの顔で ■■に 告白とか、しかも みんな 見てる前で。",
+                "女子C", glitch=3.4)
+    _story_shot(app, story, "08_bug_parents.png", "dream_home_dark",
+                [["mother", "right"], ["father", "left"]],
+                "あなたは、そのままで いいのよ。あなたは、そのままで いいのよ。", "母さん",
+                glitch=5.0)
     app.pop()
 
     explore = ExploreScene(app, "capital_square")
     app.push(explore)
     explore.fader.set(0)
     explore.seen = {"fountain", "npc"}
-    _save(app, explore, "06_explore.png", 40)
+    _save(app, explore, "09_explore.png", 40)
     app.pop()
 
-    route = RouteScene(app, "2")
+    shop = ExploreScene(app, "supermarket")
+    app.push(shop)
+    shop.fader.set(0)
+    shop.seen = {"magazine"}
+    shop.index = 0
+    _save(app, shop, "10_supermarket.png", 40)
+    app.pop()
+
+    app.state.set("shouki", 54)
+    route = RouteScene(app, "super")
     app.push(route)
     route.fader.set(0)
     route.phase = "play"
     route.x = 470.0
-    route.gauge = 58.0
-    _save(app, route, "07_route.png", 44)
+    _save(app, route, "11_errand.png", 44)
     app.pop()
 
-    app.state.bg = "void"
-    battle = BattleScene(app, "yuusha")
-    app.push(battle)
-    battle.fader.set(0)
-    battle.mode = "command"
-    battle.moya = 62
-    battle.courage = 24
-    battle.opened = True
-    _save(app, battle, "08_battle.png", 30)
+    app.state.set("shouki", 28)
+    chase = RouteScene(app, "chase")
+    app.push(chase)
+    chase.fader.set(0)
+    chase.phase = "play"
+    chase.x = 520.0
+    for p in chase.pursuers:
+        p["x"] += 620
+    _save(app, chase, "12_chase.png", 20)
     app.pop()
 
-    ending = EndingScene(app, "jibun")
-    app.push(ending)
-    ending.fader.set(0)
-    _save(app, ending, "09_ending_card.png", 30)
-    ending.phase = "epilogue"
-    ending.line_index = 8
-    _save(app, ending, "10_ending_text.png", 20)
+    for eid, tag in (("hodou", "13_ending2"), ("mitasareta", "14_ending3"),
+                     ("tsuzuku", "15_tsuzuku")):
+        ending = EndingScene(app, eid)
+        app.push(ending)
+        ending.fader.set(0)
+        _save(app, ending, f"{tag}_card.png", 30)
+        ending.phase = "epilogue"
+        ending.line_index = 9
+        _save(app, ending, f"{tag}_text.png", 20)
+        app.pop()
+
     pygame.quit()
     return 0
 

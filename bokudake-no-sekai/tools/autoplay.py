@@ -34,10 +34,8 @@ class _FakeKeys:
         return key in self.held
 
 
-def play(choices=None, battle_policy="accept", seed=0, max_frames=200000,
-         verbose=False, route_policy="walk"):
+def play(choices=None, seed=0, max_frames=200000, verbose=False, route_policy="walk"):
     from boku.app import App
-    from boku.scenes.battle import BattleScene
     from boku.scenes.ending import EndingScene
     from boku.scenes.explore import ExploreScene
     from boku.scenes.route import RouteScene
@@ -55,7 +53,6 @@ def play(choices=None, battle_policy="accept", seed=0, max_frames=200000,
 
     log = []
     choice_i = 0
-    battle_turn = 0
     frames = 0
 
     while frames < max_frames:
@@ -85,18 +82,6 @@ def play(choices=None, battle_policy="accept", seed=0, max_frames=200000,
             elif scene.mode == "run":
                 scene.step()
 
-        elif isinstance(scene, BattleScene):
-            if scene.mode == "command":
-                if battle_policy == "deny":
-                    cid = "deny"
-                else:
-                    cid = "talk" if battle_turn % 2 == 0 else "accept"
-                battle_turn += 1
-                scene._player_action(cid)
-            else:
-                scene.msg.skip()
-                scene._advance_talk()
-
         elif isinstance(scene, ExploreScene):
             if scene.mode == "read":
                 scene.msg.skip()
@@ -110,9 +95,11 @@ def play(choices=None, battle_policy="accept", seed=0, max_frames=200000,
         elif isinstance(scene, RouteScene):
             if scene.phase == "ready":
                 scene.phase = "play"
-                if route_policy == "caught":
-                    scene.gauge = 100.0        # わざと見つかる
-            elif scene.phase in ("done", "failed"):
+                if route_policy == "caught" or (
+                        route_policy == "caught_chase" and scene.stage_id == "chase"):
+                    scene.st.set("shouki", 0)      # わざと正気を削りきる
+                    scene.phase = "broken"
+            elif scene.phase in ("done", "broken"):
                 log.append(f"通学路 {scene.stage_id}: {scene.phase}")
                 scene._finish()
 
@@ -133,22 +120,23 @@ def play(choices=None, battle_policy="accept", seed=0, max_frames=200000,
     raise RuntimeError(f"エンディングに到達しませんでした（{frames} フレーム, 最後: {kind}）")
 
 
-# （名前, 選択肢, 戦闘方針, 通学路方針, 期待するエンディング）
+# （名前, 選択肢, 外出方針, 期待するエンディング）
 ROUTES = [
-    ("第一章で わすれる", [0, 0], "accept", "walk", "wasureru"),
-    ("ゆうしゃに よりかかる", [1, 1, 1, 1, 0, 2, 0, 0], "deny", "walk", "yuusha"),
-    ("ぜんぶ けして ふつうに", [1, 1, 1, 1, 0, 2, 0, 1], "deny", "walk", "futsuu"),
-    ("じぶんで きめる（真）", [1, 1, 0, 0, 1, 0, 1, 3, 2], "accept", "walk", "jibun"),
-    ("見つかりながら すすむ", [1, 1, 0, 0, 1, 0, 1, 3, 2], "accept", "caught", "jibun"),
+    ("第一章で わすれる", [0, 0], "walk", "wasureru"),
+    ("正気が もたなかった", [1, 1, 0], "caught", "hodou"),
+    ("娘の 手を とる", [1, 1, 0, 0, 0, 0], "walk", "mitasareta"),
+    ("逃げる（第三章の さいご）", [1, 1, 0, 0, 0, 1], "walk", "tsuzuku"),
+    ("スーパーから まわる", [1, 1, 1, 1, 0, 1], "walk", "tsuzuku"),
+    ("夢の中で つかまる", [1, 1, 0, 0, 0, 1], "caught_chase", "tsuzuku"),
 ]
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--choices", default=None)
-    ap.add_argument("--policy", default="accept", choices=["accept", "deny"])
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--route-policy", default="walk", choices=["walk", "caught"])
+    ap.add_argument("--route-policy", default="walk",
+                    choices=["walk", "caught", "caught_chase"])
     ap.add_argument("--all", action="store_true")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
@@ -158,9 +146,9 @@ def main():
         # ルートごとに別プロセスで実行する。
         import subprocess
         ok = True
-        for name, ch, policy, route_policy, expected in ROUTES:
+        for name, ch, route_policy, expected in ROUTES:
             cmd = [sys.executable, os.path.abspath(__file__),
-                   "--choices", ",".join(str(c) for c in ch), "--policy", policy,
+                   "--choices", ",".join(str(c) for c in ch),
                    "--route-policy", route_policy]
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             tail = [ln for ln in proc.stdout.splitlines() if ln.startswith("到達")]
@@ -180,7 +168,7 @@ def main():
         return 0 if ok else 1
 
     choices = [int(x) for x in args.choices.split(",")] if args.choices else []
-    ending, log, frames = play(choices, args.policy, args.seed, verbose=True,
+    ending, log, frames = play(choices, seed=args.seed, verbose=True,
                                route_policy=args.route_policy)
     print(f"\n到達: {ending} / {frames} フレーム")
     return 0
