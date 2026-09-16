@@ -1,0 +1,1869 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Windows 95 のデスクトップから 2025 年の Web まで、うざいポップアップの ✕ だけを撃ち落とす 4 ステージのクリックシューティング。">
+<meta name="theme-color" content="#008080">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ポップアップ狩り">
+<meta property="og:description" content="Windows 95 のデスクトップから 2025 年の Web まで、うざいポップアップの ✕ だけを撃ち落とす 4 ステージのクリックシューティング。">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.92em%22 font-size=%2292%22>%F0%9F%8E%AF</text></svg>">
+<title>ポップアップ狩り</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;500;700;900&family=Silkscreen:wght@400;700&family=VT323&display=swap">
+<style>
+:root{
+  --teal:#008080;--face:#c0c0c0;--hi:#ffffff;--lt:#dfdfdf;--sh:#808080;--dk:#000000;
+  --nav1:#000080;--nav2:#1084d0;--bsod:#0000aa;--grn:#00a800;--yel:#a8a800;--red:#a80000;--hot:#ff0000;
+  --f-ui:"DotGothic16","MS PGothic","Hiragino Sans",sans-serif;
+  --f-pix:"Silkscreen","DotGothic16",monospace;
+  --f-term:"VT323",ui-monospace,monospace;
+  --f-mod:"Noto Sans JP",system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{margin:0;background:var(--teal);color:#000;font-family:var(--f-ui);font-size:14px;
+  -webkit-font-smoothing:none;user-select:none;-webkit-user-select:none}
+button{font-family:inherit}
+svg{display:block;shape-rendering:crispEdges}
+
+.out{border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+
+/* ---------- screen ---------- */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--teal)}
+.desk{position:relative;flex:1;overflow:hidden}
+@media (hover:hover) and (pointer:fine){ .desk.live{cursor:none} }
+.desk.busy,.desk.live.busy{cursor:wait}
+
+.dicons{position:absolute;top:10px;left:10px;display:flex;flex-direction:column;gap:16px;z-index:1;pointer-events:none}
+.dicon{width:76px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.dicon span{font-size:11px;color:#fff;line-height:1.25;text-shadow:1px 1px 0 #000;padding:1px 2px}
+.dicon.sel span{background:var(--nav1);outline:1px dotted #fff}
+
+#fxlayer{position:absolute;inset:0;pointer-events:none;z-index:40}
+#fx{width:100%;height:100%}
+#field{position:absolute;inset:0;z-index:5}
+
+.cross{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;pointer-events:none;opacity:0;z-index:60}
+.cross.on{opacity:1}
+.cross i{position:absolute;background:#fff;box-shadow:0 0 0 1px #000}
+.cross i:nth-child(1){left:16px;top:0;width:2px;height:11px}
+.cross i:nth-child(2){left:16px;bottom:0;width:2px;height:11px}
+.cross i:nth-child(3){top:16px;left:0;height:2px;width:11px}
+.cross i:nth-child(4){top:16px;right:0;height:2px;width:11px}
+.cross b{position:absolute;left:15px;top:15px;width:4px;height:4px;background:#ff0;box-shadow:0 0 0 1px #000}
+.cross.fire{animation:recoil .13s steps(2)}
+@keyframes recoil{0%{transform:scale(.55)}100%{transform:scale(1)}}
+
+/* ---------- STAGE 2 : browser ---------- */
+.browser{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;background:var(--face);pointer-events:none}
+.browser[hidden]{display:none}
+.btitle{display:flex;align-items:center;gap:4px;padding:3px 3px 3px 6px;background:linear-gradient(90deg,var(--nav1),var(--nav2));color:#fff;font-size:12px}
+.btitle span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btitle i{width:17px;height:15px;background:var(--face);display:grid;place-items:center;font-family:Arial;font-size:10px;font-weight:700;color:#000;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);font-style:normal}
+.bmenu{display:flex;gap:12px;padding:3px 8px;font-size:11.5px;background:var(--face);border-bottom:1px solid var(--sh)}
+.bmenu u{text-decoration:underline}
+.btool{display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--face);border-bottom:1px solid var(--sh);overflow:hidden}
+.btool .tb{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 5px;font-size:9px;color:#000;flex:none}
+.btool .tb.dis{color:var(--sh)}
+.btool .vr{width:2px;height:22px;border-left:1px solid var(--sh);border-right:1px solid var(--hi);flex:none;margin:0 2px}
+.baddr{display:flex;align-items:center;gap:6px;padding:3px 6px;background:var(--face);border-bottom:1px solid var(--sh);font-size:11px}
+.baddr .fld{flex:1;min-width:0;background:#fff;padding:3px 6px;font-size:11.5px;white-space:nowrap;overflow:hidden;
+  border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+.baddr .go{padding:3px 9px;background:var(--face);font-size:11px;border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt)}
+.bpage{flex:1;min-height:0;background:#fff;overflow:hidden;position:relative;font-family:"MS PGothic",var(--f-ui);color:#000}
+.bstatus{display:flex;gap:8px;padding:2px 6px;background:var(--face);font-size:10.5px;border-top:1px solid var(--hi)}
+.bstatus .c{flex:1;padding:1px 5px;border:1px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+
+/* portal page content */
+.mq{overflow:hidden;background:#000080;color:#ffff00;font-size:12px;padding:2px 0;white-space:nowrap}
+.mq span{display:inline-block;padding-left:100%;animation:mqa 14s linear infinite}
+@keyframes mqa{to{transform:translateX(-200%)}}
+.topban{margin:6px auto;width:min(468px,94%);height:52px;display:grid;place-items:center;text-align:center;
+  background:linear-gradient(90deg,#ff0080,#ff8000,#ffff00,#00ff40,#00c0ff,#8000ff);background-size:300% 100%;
+  animation:rb 3s linear infinite;color:#fff;font-size:15px;text-shadow:1px 1px 0 #000,-1px -1px 0 #000;border:2px solid #000}
+@keyframes rb{to{background-position:300% 0}}
+.cols{display:flex;gap:8px;padding:6px 8px;align-items:flex-start}
+.col-l{width:132px;flex:none}
+.col-c{flex:1;min-width:0}
+.col-r{width:150px;flex:none}
+.pbox{border:1px solid #000;margin-bottom:7px;background:#fff}
+.pbox h4{margin:0;padding:2px 5px;background:#000080;color:#fff;font-size:11.5px;font-weight:normal}
+.pbox ul{list-style:none;margin:0;padding:4px 6px;display:flex;flex-direction:column;gap:3px}
+.pbox li{font-size:11.5px;color:#0000ee;text-decoration:underline;line-height:1.35}
+.pbox li.v{color:#551a8b}
+.pbox p{margin:0;padding:5px 6px;font-size:11px;line-height:1.55}
+.newtag{color:#f00;font-size:10px;animation:bl2 .55s steps(2) infinite}
+@keyframes bl2{50%{opacity:.2}}
+.smallban{height:60px;display:grid;place-items:center;text-align:center;font-size:11.5px;border:1px solid #000;margin-bottom:7px;line-height:1.4}
+.sb1{background:#ffff00;color:#f00}
+.sb2{background:#000;color:#0f0;font-family:var(--f-term);font-size:15px}
+.sb3{background:#ff69b4;color:#fff;text-shadow:1px 1px 0 #800040}
+.counter{display:flex;gap:1px;justify-content:center;margin:3px 0}
+.counter i{background:#000;color:#0f0;font-family:var(--f-term);font-size:16px;padding:0 3px;font-style:normal}
+.links{padding:5px 8px;font-size:10.5px;color:#0000ee;line-height:1.9;border-top:1px solid #000}
+.links b{font-weight:normal;color:#0000ee;text-decoration:underline;margin-right:7px;white-space:nowrap}
+.constr{display:flex;align-items:center;gap:6px;justify-content:center;padding:4px;font-size:11px;background:#ffffcc}
+
+/* ---------- STAGE 3 : smartphone ---------- */
+.phone{position:absolute;inset:0;z-index:2;display:grid;place-items:center;pointer-events:none;
+  background:repeating-linear-gradient(93deg,#6f4c30 0 44px,#7d573a 44px 46px)}
+.phone[hidden]{display:none}
+.phone::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(0,0,0,.45))}
+.device{position:relative;z-index:1;height:min(97%,760px);aspect-ratio:9/18.2;max-width:96%;
+  background:#0b0b0e;border-radius:28px;padding:9px 7px;box-shadow:0 0 0 2px #31313a,0 20px 44px rgba(0,0,0,.6)}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:88px;height:15px;background:#0b0b0e;border-radius:0 0 9px 9px;z-index:4}
+.notch i{position:absolute;top:4px;left:50%;transform:translateX(-50%);width:34px;height:4px;border-radius:2px;background:#22222a}
+.pscreen{height:100%;background:#eef2f6;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;font-family:var(--f-mod)}
+.statusbar{flex:none;display:flex;align-items:center;gap:6px;padding:5px 14px 4px;font-size:10px;color:#111;background:#fff}
+.statusbar .sp{flex:1}
+.appwrap{flex:1;min-height:0;position:relative;background:linear-gradient(180deg,#8fd0f7,#d9f0ff 60%,#ffe9b8)}
+.apptop{display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:11px;color:#2b3a45}
+.apptop .lv{background:#fff;border-radius:99px;padding:3px 9px;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.apptop .sp{flex:1}
+.apptop .hearts{color:#ff4d6d;letter-spacing:1px}
+.apptop .coin{background:#ffd54a;border-radius:99px;padding:3px 9px;font-weight:700;color:#6b4a00}
+.gems{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:6px 10px}
+.gems i{aspect-ratio:1;border-radius:7px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18),0 1px 2px rgba(0,0,0,.14)}
+.appbtn{margin:8px auto 0;width:68%;text-align:center;padding:9px;border-radius:99px;background:#22c55e;color:#fff;
+  font-weight:700;font-size:13px;box-shadow:0 3px 0 #15803d}
+.navbar{flex:none;display:flex;justify-content:space-around;align-items:center;padding:6px;background:#fff;color:#555;font-size:13px}
+
+/* ---------- STAGE 4 : modern site ---------- */
+.modern{position:absolute;inset:0;z-index:2;pointer-events:none;background:#fff}
+.modern[hidden]{display:none}
+.msite{height:100%;overflow:hidden;display:flex;flex-direction:column;font-family:var(--f-mod);color:#111827;background:#fff}
+.mhead{flex:none;display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid #eceff3}
+.mhead .logo{font-weight:700;font-size:15px;letter-spacing:.01em}
+.mhead .logo em{font-style:normal;color:#16a34a}
+.mhead nav{display:flex;gap:16px;font-size:12px;color:#6b7280}
+.mhead .sp{flex:1}
+.mhead .cta{background:#16a34a;color:#fff;font-size:12px;font-weight:700;padding:7px 15px;border-radius:8px}
+.mhero{flex:none;padding:34px 24px 26px;text-align:center;background:linear-gradient(180deg,#f7fbf8,#fff)}
+.mhero h1{margin:0;font-size:clamp(20px,3.4vw,31px);line-height:1.35;font-weight:700;letter-spacing:-.01em}
+.mhero p{margin:11px auto 0;max-width:34em;font-size:12.5px;line-height:1.85;color:#6b7280}
+.mbtns{display:flex;gap:9px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.mbtns b{font-weight:700;font-size:12.5px;padding:9px 20px;border-radius:9px;background:#16a34a;color:#fff}
+.mbtns u{text-decoration:none;font-size:12.5px;padding:9px 18px;border-radius:9px;border:1px solid #d7dde5;color:#374151}
+.mcards{flex:1;min-height:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;padding:16px 24px;align-content:start}
+.mcard{border:1px solid #eceff3;border-radius:12px;padding:14px 15px;background:#fff}
+.mcard i{display:block;width:26px;height:26px;border-radius:7px;background:#e8f6ed;margin-bottom:9px;font-style:normal;color:#16a34a;text-align:center;line-height:26px;font-size:13px}
+.mcard h5{margin:0 0 5px;font-size:13px;font-weight:700}
+.mcard p{margin:0;font-size:11.5px;line-height:1.75;color:#6b7280}
+.mlogos{flex:none;display:flex;gap:22px;justify-content:center;padding:10px 20px;border-top:1px solid #eceff3;color:#c3cad4;font-size:12px;font-weight:700;flex-wrap:wrap}
+.mfoot{flex:none;display:flex;gap:14px;padding:11px 22px;border-top:1px solid #eceff3;font-size:10.5px;color:#9aa3af;flex-wrap:wrap}
+
+/* ---------- popups (stage 1 : win95 dialogs) ---------- */
+.pop{position:absolute;top:0;left:0;background:var(--face);will-change:transform;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);
+  box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh),2px 2px 0 rgba(0,0,0,.35)}
+.pop .bar{display:flex;align-items:center;gap:3px;padding:2px 2px 2px 4px;
+  background:linear-gradient(90deg,var(--nav1),var(--nav2));color:#fff;overflow:hidden}
+.pop .ttl{flex:1;min-width:0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop .tbtn{flex:none;width:17px;height:15px;padding:0;background:var(--face);color:#000;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);
+  box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh);
+  font-family:Arial,sans-serif;font-size:9px;font-weight:700;line-height:1;display:grid;place-items:center;cursor:pointer}
+.pop .tbtn.x{font-size:11px}
+.pop .tbtn:active{border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px 0 var(--dk)}
+.pop .tbtn.x:hover,.pop .tbtn.x:focus-visible{background:#ffff80;outline:none}
+.pop .tbtn.x.pressed{border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px 0 var(--dk);background:#ffff00;transform:translate(1px,1px)}
+.pop .dim{display:flex;gap:9px;padding:11px 11px 8px;align-items:flex-start}
+.pop .dim .tx{flex:1;font-size:12.5px;line-height:1.6}
+.pop .dim .tx b{background:#ffff80}
+.pop .btns{display:flex;gap:6px;justify-content:center;padding:0 11px 11px}
+.pop .b95{min-width:62px;padding:4px 10px;background:var(--face);font-size:12px;cursor:pointer;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);
+  box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+.pop.blink .b95.def{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{background:#ffff80}}
+.pop .prog{margin:0 11px 10px;height:16px;padding:2px;background:var(--face);border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+.pop .prog i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--nav1) 0 9px,transparent 9px 11px)}
+.pop .pips{display:flex;gap:2px;flex:none;margin-right:2px}
+.pop .pips i{width:5px;height:10px;background:#7bff7b;box-shadow:0 0 0 1px #024}
+.pop .pips i.off{background:#044}
+.pop.urgent{outline:2px solid var(--hot);animation:urg .34s steps(2) infinite}
+@keyframes urg{50%{filter:brightness(1.5) saturate(1.4)}}
+.pop.dying{animation:die .16s steps(3) forwards;pointer-events:none}
+@keyframes die{to{transform:translate3d(var(--px),var(--py),0) scale(.1);opacity:0}}
+.pop.flash{animation:fl .3s steps(2) 2}
+@keyframes fl{50%{filter:invert(1)}}
+.pop.help .bar{background:linear-gradient(90deg,#006a00,#2fbd2f)}
+
+/* boss : stage 1 */
+.pop.boss{box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh),0 0 0 2px var(--hot),4px 4px 0 rgba(0,0,0,.5)}
+.pop.boss .bar{background:repeating-linear-gradient(45deg,#c00000 0 11px,#1a1a1a 11px 22px);background-size:31px 31px;animation:hz .7s linear infinite;padding:3px 3px 3px 6px}
+@keyframes hz{to{background-position:31px 0}}
+.pop.boss .ttl{font-size:13px;letter-spacing:.08em;animation:bl .44s steps(2) infinite;text-shadow:1px 1px 0 #000}
+@keyframes bl{50%{color:#ffff00}}
+.pop.boss .tbtn.x{width:22px;height:19px;font-size:13px;background:#ffff80}
+.pop.boss .hpwrap{margin:0 11px 6px}
+.pop.boss .hplbl{display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px}
+.pop.boss .prog i{background:repeating-linear-gradient(90deg,var(--red) 0 9px,transparent 9px 11px)}
+.pop.boss .hint{padding:0 11px 11px;font-size:11.5px;text-align:center}
+.pop.boss .hint b{background:#ffff80;padding:0 3px}
+
+/* ---------- popups (stage 2 : in-page ads) ---------- */
+.pop.web{background:#fff;border:1px solid #000;box-shadow:3px 3px 5px rgba(0,0,0,.45);font-family:"MS PGothic",var(--f-ui)}
+.pop.web .tbtn.x{position:absolute;top:-1px;right:-1px;width:17px;height:16px;z-index:4;background:#e4e4e4;color:#000;
+  border:1px solid #444;box-shadow:none;font-size:10px}
+.pop.web .tbtn.x:hover,.pop.web .tbtn.x:focus-visible{background:#ffff00}
+.pop.web .tbtn.x.pressed{background:#ffff00;transform:translate(1px,1px);border-color:#000}
+.pop.ban .bc{padding:11px 26px 11px 12px;text-align:center;font-size:13px;line-height:1.5;color:#fff;
+  text-shadow:1px 1px 0 #000,-1px -1px 0 #000;
+  background:linear-gradient(90deg,#ff0080,#ff8000,#ffff00,#00ff40,#00c0ff,#8000ff);background-size:300% 100%;animation:rb 3s linear infinite}
+.pop.ban .sb{background:#000;color:#ffff00;font-size:11px;text-align:center;padding:3px;animation:bl2 .5s steps(2) infinite}
+.pop.menu{background:#d4d0c8;display:flex;align-items:flex-start;padding:0;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:3px 3px 5px rgba(0,0,0,.45)}
+.mcol{width:128px;flex:none;border-right:1px solid var(--sh);padding-bottom:3px}
+.mcol:last-child{border-right:none}
+.mhead{background:#000080;color:#fff;font-size:11px;padding:2px 6px;white-space:nowrap;overflow:hidden}
+.mitem{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;padding:3px 7px;color:#000;white-space:nowrap}
+.mitem em{font-style:normal;color:#606060}
+.mitem.hot{color:#c00000}
+.pop.drop{background:linear-gradient(180deg,#0a3c8f,#1176e0);border:1px solid #000;color:#fff;overflow:hidden}
+.pop.drop .dr{padding:9px 28px 9px 12px;text-align:center;font-size:13px;line-height:1.6}
+.pop.drop .ar{color:#ffff00;font-size:11px;animation:bl2 .6s steps(2) infinite}
+.pop.inter{background:#fff;border:3px solid #ff0000;box-shadow:0 0 0 100vmax rgba(0,0,0,.5)}
+.pop.inter .ih{background:#ff0000;color:#fff;font-size:12px;padding:3px 26px 3px 8px;text-align:center}
+.pop.inter .ib{padding:14px 12px;text-align:center;font-size:14px;line-height:1.7}
+.pop.inter .ib b{background:#ffff00;padding:0 4px}
+.pop.inter .fakevid{margin:8px auto 0;width:86%;height:74px;background:#111;color:#888;display:grid;place-items:center;font-size:11px;border:1px solid #000}
+.pop.inter .skip{font-size:11px;color:#606060;padding:0 12px 12px;text-align:center}
+.pop.bboss{background:#000;border:2px solid #000;box-shadow:0 0 0 2px #ff0,4px 4px 6px rgba(0,0,0,.6);overflow:visible}
+.pop.bboss .bb{padding:12px 8px;text-align:center;font-size:15px;color:#fff;text-shadow:1px 1px 0 #000,-1px -1px 0 #000;
+  background:linear-gradient(90deg,#ff00ff,#00ffff,#ffff00,#ff0000,#00ff00);background-size:400% 100%;animation:rb 1.1s linear infinite}
+.pop.bboss .bsub{background:#000;color:#0f0;font-family:var(--f-term);font-size:13px;text-align:center;padding:1px}
+.pop.bboss .hpbar{height:7px;background:#222;padding:1px}
+.pop.bboss .hpbar i{display:block;height:100%;background:#ff2020;width:0%}
+.pop.bboss .tbtn.x{position:absolute;width:14px;height:14px;font-size:8px;line-height:1;background:#ffff00;border:1px solid #000;
+  animation:strobe .16s steps(2) infinite;z-index:6;transition:left .12s steps(2),top .12s steps(2)}
+@keyframes strobe{50%{background:#fff;color:#ff0000;box-shadow:0 0 7px 2px #ffff00}}
+@media (pointer:coarse){ .pop.bboss .tbtn.x{width:21px;height:21px;font-size:11px} }
+
+/* ---------- popups (stage 3 : app ads) ---------- */
+.pop.app{background:#fff;border:none;border-radius:13px;overflow:hidden;font-family:var(--f-mod);
+  box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.pop.app .tbtn.x,.pop.app .tbtn.xf{position:absolute;width:21px;height:21px;border-radius:50%;padding:0;
+  background:rgba(17,24,39,.62);color:#fff;border:none;box-shadow:none;font-family:Arial,sans-serif;font-size:11px;z-index:5}
+.pop.app .tbtn.x{top:3px;right:3px}
+.pop.app .tbtn.x:hover,.pop.app .tbtn.x:focus-visible{background:#111827;outline:none}
+.pop.app .tbtn.x.pressed{background:#ffd400;color:#111;transform:translate(1px,1px)}
+.pop.app .tbtn.xf{background:rgba(17,24,39,.34);width:24px;height:24px}
+.pop.app .tbtn.x.locked{background:rgba(17,24,39,.5);font-family:var(--f-mod);font-size:10px;font-weight:700;cursor:default}
+.pop.app .tbtn.x.revealed{animation:strobe .17s steps(2) infinite;background:#ffd400;color:#111;width:17px;height:17px;font-size:10px}
+.pop.app .ahead{display:flex;gap:9px;align-items:center;padding:10px 30px 8px 11px}
+.pop.app .aico{width:34px;height:34px;border-radius:9px;flex:none;background:linear-gradient(135deg,#ff8a3d,#ff3d8a)}
+.pop.app .aico.g{background:linear-gradient(135deg,#22c55e,#0ea5e9)}
+.pop.app .aico.p{background:linear-gradient(135deg,#a855f7,#ec4899)}
+.pop.app .atx{flex:1;min-width:0}
+.pop.app .atx b{display:block;font-size:12.5px;font-weight:700;line-height:1.35}
+.pop.app .atx span{display:block;font-size:10.5px;color:#6b7280;margin-top:2px}
+.pop.app .ains{margin:0 11px 11px;text-align:center;background:#22c55e;color:#fff;border-radius:99px;padding:7px;font-size:12px;font-weight:700}
+.pop.app .apr{position:absolute;left:0;top:0;background:rgba(17,24,39,.55);color:#fff;font-size:9px;padding:2px 6px;border-radius:0 0 7px 0;z-index:4}
+.pop.app .vid{background:#0c0c10;color:#9aa3af;height:118px;display:grid;place-items:center;font-size:11px;position:relative}
+.pop.app .vid::after{content:"";position:absolute;left:8px;right:8px;bottom:8px;height:3px;border-radius:2px;
+  background:linear-gradient(90deg,#ff3d3d 0 38%,rgba(255,255,255,.28) 38%)}
+.pop.app .vcap{padding:9px 11px;font-size:11.5px;line-height:1.6;color:#374151}
+.pop.app .vcap b{color:#111827}
+.pop.notif{border-radius:15px;background:rgba(255,255,255,.96);box-shadow:0 8px 22px rgba(0,0,0,.28)}
+.pop.notif .nrow{display:flex;gap:9px;align-items:flex-start;padding:9px 30px 9px 10px}
+.pop.notif .nico{width:22px;height:22px;border-radius:6px;flex:none;background:linear-gradient(135deg,#0ea5e9,#6366f1)}
+.pop.notif .ntx b{font-size:11.5px;font-weight:700;display:block}
+.pop.notif .ntx span{font-size:11px;color:#4b5563;display:block;margin-top:2px;line-height:1.5}
+.pop.notif .ntime{position:absolute;top:9px;right:30px;font-size:9.5px;color:#9aa3af}
+.pop.vboss{background:#000;border-radius:0;box-shadow:0 0 0 3px #ff2020,0 0 40px rgba(255,0,0,.35)}
+.pop.vboss .vscreen{position:relative;background:#08080c;display:grid;place-items:center;text-align:center;color:#fff;padding:22px 14px}
+.pop.vboss .vscreen h3{margin:0;font-size:15px;font-weight:700;line-height:1.5}
+.pop.vboss .vscreen p{margin:8px 0 0;font-size:11.5px;color:#9aa3af;line-height:1.7}
+.pop.vboss .cd{position:absolute;top:7px;left:7px;background:rgba(255,255,255,.14);color:#fff;font-size:11px;
+  padding:3px 9px;border-radius:99px;font-weight:700}
+.pop.vboss .vbar{height:4px;background:#1c1c22}
+.pop.vboss .vbar i{display:block;height:100%;background:#ff2020;width:0%}
+.pop.vboss .ains{margin:12px auto 0;width:78%}
+
+/* ---------- popups (stage 4 : dark patterns) ---------- */
+.pop.dark{background:#fff;border:1px solid #e5e7eb;border-radius:13px;font-family:var(--f-mod);
+  box-shadow:0 14px 34px rgba(15,23,42,.17)}
+.pop.dark .tbtn.x{position:absolute;top:8px;right:8px;width:19px;height:19px;background:none;border:none;box-shadow:none;
+  color:#9aa3af;font-family:Arial,sans-serif;font-size:13px;border-radius:5px}
+.pop.dark .tbtn.x:hover,.pop.dark .tbtn.x:focus-visible{background:#f1f5f9;color:#111827;outline:none}
+.pop.dark .tbtn.x.pressed{background:#ffd400;color:#111}
+.pop.dark h5{margin:0 0 7px;font-size:13.5px;font-weight:700}
+.pop.dark .dp{padding:14px 34px 12px 15px;font-size:11.5px;line-height:1.8;color:#4b5563}
+.pop.dark .drow{display:flex;gap:8px;align-items:center;padding:0 15px 14px;flex-wrap:wrap}
+.pop.dark .accept{background:#16a34a;color:#fff;font-size:12.5px;font-weight:700;padding:9px 20px;border-radius:9px;flex:1;text-align:center;min-width:120px}
+.pop.dark .decline{font-size:10px;color:#b6bec9;text-decoration:underline;padding:4px}
+.pop.dark .tog{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#374151;padding:5px 15px;border-top:1px solid #f1f5f9}
+.pop.dark .tog i{width:30px;height:17px;border-radius:99px;background:#16a34a;position:relative;flex:none}
+.pop.dark .tog i::after{content:"";position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#fff}
+.pop.dark .tog.off i{background:#d7dde5}
+.pop.dark .tog.off i::after{right:auto;left:2px}
+.pop.cookie .tbtn.x{position:static;width:auto;height:auto;padding:5px 8px;font-family:var(--f-mod);font-size:10px;
+  color:#b6bec9;text-decoration:underline;border-radius:5px}
+.pop.cookie .tbtn.x:hover,.pop.cookie .tbtn.x:focus-visible{background:#f1f5f9;color:#374151}
+.pop.chat{border-radius:16px;overflow:hidden}
+.pop.chat .chead{background:#16a34a;color:#fff;font-size:11.5px;font-weight:700;padding:8px 32px 8px 12px}
+.pop.chat .cbub{margin:11px 12px;background:#f1f5f9;border-radius:12px 12px 12px 3px;padding:9px 11px;font-size:11.5px;line-height:1.6}
+.pop.chat .cinp{margin:0 12px 12px;border:1px solid #e5e7eb;border-radius:9px;padding:7px 10px;font-size:11px;color:#9aa3af}
+.pop.vendors{background:#fff;overflow:hidden;box-shadow:0 0 0 2px #16a34a,0 18px 40px rgba(15,23,42,.3)}
+.pop.vendors .vhead{padding:11px 14px 9px;border-bottom:1px solid #eceff3}
+.pop.vendors .vhead h5{margin:0 0 3px}
+.pop.vendors .vhead span{font-size:10.5px;color:#6b7280}
+.pop.vendors .vwrap{position:relative;height:186px;overflow:hidden}
+.pop.vendors .vlist{position:absolute;inset:0;animation:vscroll 9s linear infinite}
+@keyframes vscroll{to{transform:translateY(-50%)}}
+.pop.vendors .vrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 14px;font-size:10.5px;color:#4b5563;border-bottom:1px solid #f6f8fa}
+.pop.vendors .vrow i{width:26px;height:15px;border-radius:99px;background:#16a34a;flex:none;position:relative}
+.pop.vendors .vrow i::after{content:"";position:absolute;top:2px;right:2px;width:11px;height:11px;border-radius:50%;background:#fff}
+.pop.vendors .tbtn.x{position:absolute;left:auto;right:10px;width:auto;height:auto;padding:3px 9px;border-radius:7px;
+  background:#111827;color:#fff;font-family:var(--f-mod);font-size:10px;font-weight:700;z-index:6;
+  animation:strobe2 .4s steps(2) infinite}
+@keyframes strobe2{50%{background:#ff2020}}
+.pop.vendors .vfoot{padding:8px 14px;border-top:1px solid #eceff3;font-size:10px;color:#9aa3af}
+@media (pointer:coarse){
+  .pop.app .tbtn.x,.pop.app .tbtn.xf{width:26px;height:26px;font-size:13px}
+  .pop.app .tbtn.x.revealed{width:22px;height:22px}
+  .pop.dark .tbtn.x{width:26px;height:26px;font-size:15px}
+}
+
+.float{position:absolute;pointer-events:none;font-family:var(--f-pix);font-size:15px;z-index:50;
+  color:#fff;text-shadow:1px 1px 0 #000,2px 2px 0 rgba(0,0,0,.5);animation:rise .8s steps(8) forwards}
+.float.big{font-size:21px}
+@keyframes rise{0%{transform:translate(-50%,0);opacity:1}100%{transform:translate(-50%,-50px);opacity:0}}
+.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:55;pointer-events:none;
+  font-family:var(--f-pix);font-size:clamp(20px,5.5vw,44px);color:#fff;letter-spacing:.06em;
+  text-shadow:2px 2px 0 #000,4px 4px 0 rgba(0,0,0,.4);animation:bn 1s steps(10) forwards;white-space:nowrap}
+.banner.alarm{color:#ff2020;animation:bn2 1.5s steps(12) forwards}
+@keyframes bn{0%{opacity:0;transform:translate(-50%,-50%) scale(1.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
+@keyframes bn2{0%,20%,40%{opacity:1}10%,30%{opacity:.15}60%,80%{opacity:1}70%,90%{opacity:.15}100%{opacity:0}}
+.redflash{position:absolute;inset:0;z-index:45;pointer-events:none;background:rgba(255,0,0,.4);animation:rf .5s steps(4) forwards}
+@keyframes rf{to{opacity:0}}
+.whiteflash{position:absolute;inset:0;z-index:70;pointer-events:none;background:#fff;animation:wf .6s steps(6) forwards}
+@keyframes wf{0%{opacity:1}35%{opacity:.85}100%{opacity:0}}
+.bombring{position:absolute;z-index:44;pointer-events:none;border:3px solid #fff;border-radius:50%;
+  transform:translate(-50%,-50%);animation:brg .55s linear forwards;box-shadow:0 0 0 2px rgba(0,128,255,.5)}
+@keyframes brg{0%{width:20px;height:20px;opacity:1}100%{width:190vmax;height:190vmax;opacity:0}}
+
+/* ---------- taskbar ---------- */
+.taskbar{flex:none;display:flex;align-items:center;gap:4px;padding:3px 4px;background:var(--face);
+  box-shadow:inset 0 1px 0 var(--lt),inset 0 2px 0 var(--hi);min-height:36px;flex-wrap:wrap}
+.startbtn{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 5px;background:var(--face);font-size:13px;cursor:pointer;flex:none;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+.startbtn.open,.startbtn:active{border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px 0 var(--dk);padding:4px 7px 2px 6px}
+.tbsep{width:2px;align-self:stretch;margin:1px 2px;border-left:1px solid var(--sh);border-right:1px solid var(--hi);flex:none}
+.tasks{flex:1 1 120px;display:flex;gap:3px;overflow:hidden;min-width:60px}
+.taskbtn{flex:1 1 0;min-width:0;max-width:150px;padding:3px 6px;background:var(--face);font-size:11px;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+.taskbtn.hot{background:#ffff80}
+.tray{display:flex;align-items:center;gap:8px;padding:2px 6px;flex:none;flex-wrap:wrap;
+  border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+.tray .item{display:flex;align-items:center;gap:5px;font-size:11px;line-height:1}
+.tray .lbl{font-family:var(--f-pix);font-size:8px;letter-spacing:.08em;color:#404040}
+.tray b{font-family:var(--f-pix);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.tray em{font-style:normal;font-size:10px;color:var(--nav1)}
+.segs{display:flex;gap:1px}
+.segs i{width:4px;height:11px;background:#9a9a9a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+#hist{background:#000;image-rendering:pixelated}
+.tray .cpu.hi b{color:var(--red)}
+.taskbar.alarm{animation:tbal .4s steps(2) infinite}
+@keyframes tbal{50%{background:#ffb0b0}}
+.bombs{display:flex;gap:3px}
+.bombs i{position:relative;width:11px;height:11px;background:#9a9a9a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+.bombs i.on{background:#000}
+.bombs i.on::after{content:"";position:absolute;right:-1px;top:-3px;width:3px;height:3px;background:#ff8000}
+.bombbtn{padding:3px 7px;background:var(--face);font-family:var(--f-pix);font-size:9px;letter-spacing:.06em;cursor:pointer;color:#606060;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+.bombbtn:disabled{cursor:default;color:#909090}
+.bombbtn.ready{color:#000;background:#ffff80;animation:bpulse .55s steps(2) infinite}
+@keyframes bpulse{50%{background:#ff8000}}
+.bombbtn:focus-visible{outline:1px dotted #000;outline-offset:-4px}
+
+.startmenu{position:absolute;left:4px;bottom:100%;margin-bottom:3px;z-index:90;display:flex;background:var(--face);
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);
+  box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh),3px 3px 0 rgba(0,0,0,.4)}
+.startmenu[hidden]{display:none}
+.smrail{width:26px;background:linear-gradient(180deg,var(--sh),var(--nav1));display:grid;place-items:center}
+.smrail span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--f-pix);font-size:13px;color:#fff;letter-spacing:.1em;padding:8px 0}
+.smlist{display:flex;flex-direction:column;padding:2px;min-width:172px}
+.smlist button{display:flex;align-items:center;gap:8px;padding:6px 18px 6px 8px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;color:#000}
+.smlist button:hover,.smlist button:focus-visible{background:var(--nav1);color:#fff;outline:none}
+.smlist hr{border:none;border-top:1px solid var(--sh);border-bottom:1px solid var(--hi);margin:3px 2px}
+
+/* ---------- dialogs ---------- */
+.overlay{position:absolute;inset:0;z-index:95;display:grid;place-items:center;padding:14px;background:rgba(0,0,0,.3)}
+.overlay[hidden]{display:none}
+.dlg{width:min(480px,100%);max-height:100%;overflow:auto;background:var(--face);
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);
+  box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh),4px 4px 0 rgba(0,0,0,.4)}
+.dlg .bar{display:flex;align-items:center;gap:4px;padding:3px 3px 3px 6px;background:linear-gradient(90deg,var(--nav1),var(--nav2));color:#fff;font-size:12.5px}
+.dlg .bar span{flex:1}
+.dlg .bar i{width:17px;height:15px;background:var(--face);color:#000;font-family:Arial;font-size:11px;font-weight:700;font-style:normal;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);display:grid;place-items:center}
+.dlg .pad{padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.dlg h2{margin:0;font-size:20px;line-height:1.3}
+.dlg .row{display:flex;gap:14px;align-items:flex-start}
+.dlg p{margin:0;font-size:12.5px;line-height:1.75}
+.tips{background:var(--hi);padding:12px 14px;display:flex;flex-direction:column;gap:9px;
+  border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+.tips .h{font-size:12px;color:var(--nav1)}
+.tips ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+.tips li{display:grid;grid-template-columns:18px 1fr;gap:8px;font-size:12px;line-height:1.65}
+.tips li em{font-style:normal;font-family:var(--f-pix);font-size:11px;text-align:center}
+.tips li em.g{color:#007000}.tips li em.r{color:#c00000}.tips li em.y{color:#a06000}.tips li em.b{color:#000080}
+.legend{display:flex;flex-direction:column;gap:6px}
+.legend div{display:flex;gap:8px;align-items:center;font-size:11.5px;line-height:1.5}
+.legend b{flex:none;min-width:80px;text-align:center;font-size:10px;padding:2px 4px;color:#fff;background:var(--nav1)}
+.legend b.boss{background:var(--red)}
+.legend b.bomb{background:#0000c0}
+.legend b.gold{background:#806000}
+.scoretab{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:12px;background:var(--hi);padding:10px 12px;
+  border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+.scoretab span:nth-child(even){font-family:var(--f-pix);font-size:12px;text-align:right}
+.scoretab .tot{border-top:1px solid var(--sh);padding-top:5px;margin-top:3px}
+.dlgbtns{display:flex;gap:8px;justify-content:center}
+.big95{min-width:130px;padding:8px 18px;background:var(--face);font-size:14px;cursor:pointer;
+  border:2px solid;border-color:var(--lt) var(--dk) var(--dk) var(--lt);box-shadow:inset 1px 1px 0 var(--hi),inset -1px -1px 0 var(--sh)}
+.big95:active{border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px 0 var(--dk)}
+.big95:focus-visible{outline:1px dotted #000;outline-offset:-5px}
+.best{font-family:var(--f-pix);font-size:11px;text-align:center;color:#404040}
+.chk{display:flex;gap:7px;align-items:center;font-size:11.5px;color:#404040}
+.chk i{width:13px;height:13px;background:var(--hi);display:grid;place-items:center;font-size:10px;font-style:normal;
+  border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+
+/* BSOD + shutdown */
+.bsod{position:absolute;inset:0;z-index:99;background:var(--bsod);color:#fff;font-family:var(--f-term);
+  font-size:clamp(15px,2.6vw,21px);line-height:1.45;padding:clamp(14px,5vh,48px) clamp(14px,6vw,72px);
+  display:flex;flex-direction:column;gap:14px;overflow:auto}
+.bsod[hidden]{display:none}
+.bsod .hd{align-self:center;background:#a8a8a8;color:var(--bsod);padding:1px 14px;letter-spacing:.1em}
+.bsod .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:4px 20px;
+  border-top:1px solid #7a7aff;border-bottom:1px solid #7a7aff;padding:10px 0}
+.bsod .stats div span{color:#a8a8ff}
+.bsod .verdict{color:#ffff55}
+.bsod .go{align-self:center;margin-top:6px;font-family:var(--f-term);font-size:inherit;background:var(--bsod);color:#fff;
+  border:1px solid #fff;padding:5px 22px;cursor:pointer;letter-spacing:.1em}
+.bsod .go:hover{background:#fff;color:var(--bsod)}
+.bsod .cursor::after{content:"_";animation:cur .9s steps(2) infinite}
+@keyframes cur{50%{opacity:0}}
+.bsod.shut{background:#000;color:#ff9c00;justify-content:center;align-items:center;text-align:center}
+.bsod.shut .hd{background:none;color:#ff9c00;font-size:1.5em;letter-spacing:.16em}
+.bsod.shut .stats{border-color:#7a4a00;width:min(560px,100%)}
+.bsod.shut .stats div span{color:#c07000}
+.bsod.shut .go{border-color:#ff9c00;color:#ff9c00;background:#000}
+.bsod.shut .go:hover{background:#ff9c00;color:#000}
+.bsod.shut .verdict{color:#fff}
+
+@media (pointer:coarse){
+  .pop .tbtn{width:24px;height:21px;font-size:11px}
+  .pop .tbtn.x{font-size:13px}
+  .pop.boss .tbtn.x{width:30px;height:26px;font-size:15px}
+  .pop.web .tbtn.x{width:23px;height:22px;font-size:12px}
+}
+@media (max-width:620px){
+  .dicons{gap:10px}.dicon{width:62px}.dicon span{font-size:10px}
+  .tray{gap:6px;order:3;width:100%;justify-content:space-between}
+  .tasks{order:2;flex-basis:100%}
+  .startbtn{order:1}
+  .taskbar{min-height:auto}
+  #hist{display:none}
+  .col-l,.col-r{display:none}
+  .btool .tb span{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .pop.blink .b95.def,.pop.urgent,.pop.boss .bar,.pop.boss .ttl,.taskbar.alarm,.bombbtn.ready,
+  .pop.bboss .tbtn.x,.pop.ban .bc,.pop.bboss .bb,.topban,.mq span,.newtag,
+  .pop.app .tbtn.x.revealed,.pop.vendors .vlist,.pop.vendors .tbtn.x{animation:none}
+  .cross.fire{animation:none}
+}
+</style>
+<style>
+/* standalone document reset (the artifact host supplies these otherwise) */
+[hidden]{display:none!important}
+img{max-width:100%}
+body{overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="desk" id="desk">
+    <div class="dicons" id="dicons"></div>
+
+    <div class="browser" id="browser" hidden>
+      <div class="btitle"><span>ポップ ポータル - よろずリンク集 - Microsoft Internet Explorer</span><i>_</i><i>□</i><i>✕</i></div>
+      <div class="bmenu"><span><u>F</u>ファイル</span><span><u>E</u>編集</span><span><u>V</u>表示</span><span><u>A</u>お気に入り</span><span><u>T</u>ツール</span><span><u>H</u>ヘルプ</span></div>
+      <div class="btool">
+        <div class="tb"><svg width="20" height="16" viewBox="0 0 20 16"><path d="M9 3 L3 8 L9 13 Z" fill="#008000"/><rect x="9" y="6" width="7" height="4" fill="#008000"/></svg><span>戻る</span></div>
+        <div class="tb dis"><svg width="20" height="16" viewBox="0 0 20 16"><path d="M11 3 L17 8 L11 13 Z" fill="#909090"/><rect x="4" y="6" width="7" height="4" fill="#909090"/></svg><span>進む</span></div>
+        <div class="tb"><svg width="20" height="16" viewBox="0 0 20 16"><circle cx="10" cy="8" r="6" fill="#d00000"/><rect x="6" y="7" width="8" height="2" fill="#fff"/></svg><span>中止</span></div>
+        <div class="tb"><svg width="20" height="16" viewBox="0 0 20 16"><path d="M4 8a6 6 0 1 1 3 5" fill="none" stroke="#0060c0" stroke-width="3"/><path d="M3 3 L3 9 L9 9 Z" fill="#0060c0"/></svg><span>更新</span></div>
+        <div class="vr"></div>
+        <div class="tb"><svg width="20" height="16" viewBox="0 0 20 16"><path d="M10 2 L18 9 L15 9 L15 14 L5 14 L5 9 L2 9 Z" fill="#c08000" stroke="#603000"/></svg><span>ホーム</span></div>
+        <div class="tb"><svg width="20" height="16" viewBox="0 0 20 16"><path d="M10 2 l2.5 5 5.5.5-4 3.5 1 5.5-5-3-5 3 1-5.5-4-3.5 5.5-.5z" fill="#ffd000" stroke="#806000"/></svg><span>お気に入り</span></div>
+      </div>
+      <div class="baddr"><span>アドレス</span><div class="fld">http://www.pop-portal.co.jp/~yakkun/index.html</div><div class="go">移動</div></div>
+      <div class="bpage" id="bpage">
+        <div class="mq"><span>★☆★ 相互リンク大募集中！！ 当サイトはリンクフリーです ★☆★ ただいまアクセス殺到中！！ ★☆★ 掲示板に書き込んでね ★☆★</span></div>
+        <div class="topban">＼＼ 今すぐクリック ／／　1クリック5円！　誰でもカンタン副収入</div>
+        <div class="cols">
+          <div class="col-l">
+            <div class="pbox"><h4>カテゴリ</h4><ul>
+              <li>ニュース</li><li class="v">スポーツ</li><li>オークション</li><li>掲示板</li>
+              <li class="v">懸賞・プレゼント</li><li>占い</li><li>出会い</li><li>副業・内職</li>
+              <li class="v">ダイエット</li><li>相互リンク</li></ul></div>
+            <div class="smallban sb1">★緊急★<br>今だけ無料</div>
+          </div>
+          <div class="col-c">
+            <div class="pbox"><h4>新着情報</h4><ul>
+              <li>【重要】サーバー移転のお知らせ <em class="newtag">NEW!</em></li>
+              <li class="v">キリ番踏んだ方は掲示板まで <em class="newtag">NEW!</em></li>
+              <li>相互リンク先を12件追加しました</li>
+              <li class="v">アクセスカウンターを設置しました</li>
+              <li>トップページの画像を変更しました</li></ul>
+              <p>当サイトは <b>800×600</b> / Internet Explorer 5 以上での閲覧を推奨しています。<br>
+              リンクはご自由にどうぞ。その際は掲示板までご一報ください。</p></div>
+            <div class="constr"><svg width="18" height="16" viewBox="0 0 18 16"><rect x="0" y="4" width="18" height="8" fill="#ffd000"/><path d="M0 4 l4 8 M6 4 l4 8 M12 4 l4 8" stroke="#000" stroke-width="2"/></svg><span>このページは工事中です　Under Construction</span></div>
+          </div>
+          <div class="col-r">
+            <div class="smallban sb2">$$$$$$$<br>高収入</div>
+            <div class="smallban sb3">今夜ヒマ？<br>クリック♥</div>
+            <div class="pbox"><h4>カウンター</h4>
+              <div class="counter"><i>0</i><i>0</i><i>7</i><i>3</i><i>4</i><i>1</i><i>9</i></div>
+              <p style="text-align:center">あなたは 734,19X 人目の<br>お客様です</p></div>
+          </div>
+        </div>
+        <div class="links"><b>◆個人サイト様</b><b>◆懸賞リンク</b><b>◆無料ゲーム</b><b>◆待受画像</b><b>◆着メロ</b><b>◆占い館</b><b>◆ダイエット日記</b><b>◆自作PC</b><b>◆掲示板レンタル</b><b>◆アクセスアップ</b><b>◆SOHO副業</b><b>◆格安航空券</b></div>
+      </div>
+      <div class="bstatus"><div class="c">ページが表示されました</div><div class="c" style="flex:0 0 130px">インターネット ゾーン</div></div>
+    </div>
+
+    <div class="phone" id="phone" hidden>
+      <div class="device">
+        <div class="notch"><i></i></div>
+        <div class="pscreen">
+          <div class="statusbar"><span>14:32</span><span class="sp"></span><span>◢◣ 4G</span><span>87%</span><span>▮</span></div>
+          <div class="appwrap" id="appwrap">
+            <div class="apptop"><span class="lv">ステージ 24</span><span class="sp"></span><span class="hearts">♥♥♥♥♥</span><span class="coin">◎ 1,250</span></div>
+            <div class="gems" id="gems"></div>
+            <div class="appbtn">つづきから</div>
+          </div>
+          <div class="navbar"><span>◁</span><span>○</span><span>□</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modern" id="modern" hidden>
+      <div class="msite" id="msite">
+        <div class="mhead"><div class="logo">◇ Flow<em>ly</em></div><nav><span>機能</span><span>料金</span><span>導入事例</span><span>ブログ</span></nav><span class="sp"></span><div class="cta">無料で始める</div></div>
+        <div class="mhero">
+          <h1>すべてのチームに、<br>なめらかな一日を。</h1>
+          <p>Flowly は、散らばったタスクと会話をひとつにまとめるワークスペースです。導入は 3 分、設定はほとんど要りません。</p>
+          <div class="mbtns"><b>無料で始める</b><u>デモを見る</u></div>
+        </div>
+        <div class="mcards">
+          <div class="mcard"><i>◷</i><h5>自動でまとまる</h5><p>会議も依頼も、関係するものが勝手に隣に並びます。探す時間がゼロになります。</p></div>
+          <div class="mcard"><i>◈</i><h5>チームの温度がわかる</h5><p>誰が何に詰まっているのか、聞かなくても見える状態をつくります。</p></div>
+          <div class="mcard"><i>◉</i><h5>あとから振り返れる</h5><p>決まったことと、決まらなかったことが、同じ場所に残ります。</p></div>
+        </div>
+        <div class="mlogos"><span>NORTHWIND</span><span>Kisogawa</span><span>APEX</span><span>みどり商事</span><span>LUMEN</span></div>
+        <div class="mfoot"><span>© 2025 Flowly Inc.</span><span>プライバシーポリシー</span><span>利用規約</span><span>Cookie 設定</span><span>特定商取引法に基づく表記</span></div>
+      </div>
+    </div>
+
+    <div id="field"></div>
+    <div id="fxlayer"><canvas id="fx"></canvas></div>
+    <div class="cross" id="cross"><i></i><i></i><i></i><i></i><b></b></div>
+
+    <div class="overlay" id="overlay">
+      <div class="dlg">
+        <div class="bar"><span id="dlgTitle">ようこそ</span><i>✕</i></div>
+        <div class="pad" id="dlgBody"></div>
+      </div>
+    </div>
+    <div class="bsod" id="bsod" hidden></div>
+  </div>
+
+  <div class="taskbar" id="taskbar">
+    <button class="startbtn" id="startBtn" type="button" aria-haspopup="true" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="1" y="3" width="6" height="5" fill="#ff0000"/><rect x="8" y="2" width="7" height="6" fill="#00a800"/>
+        <rect x="1" y="9" width="6" height="5" fill="#0000ff"/><rect x="8" y="9" width="7" height="6" fill="#ffb000"/>
+      </svg>スタート</button>
+    <div class="tbsep"></div>
+    <div class="tasks" id="tasks"></div>
+    <div class="tray">
+      <div class="item"><span class="lbl">STAGE</span><b id="stageNum">1-1</b></div>
+      <div class="item"><span class="lbl">SCORE</span><b id="score">0</b></div>
+      <div class="item"><span class="lbl">COMBO</span><b id="combo">0</b><em id="rank">—</em></div>
+      <div class="item cpu" id="cpuItem"><span class="lbl">CPU</span><div class="segs" id="segs"></div><b id="cpuNum">3%</b><canvas id="hist" width="44" height="18"></canvas></div>
+      <div class="item"><span class="lbl">BOMB</span><div class="segs" id="bsegs"></div><div class="bombs" id="bombs"><i></i><i></i><i></i></div><button class="bombbtn" id="bombBtn" type="button" disabled title="スペースキーでも発射">FIRE</button></div>
+      <div class="item"><b id="clock">--:--</b></div>
+    </div>
+
+    <div class="startmenu" id="startMenu" hidden>
+      <div class="smrail"><span>Popup Hunt 95</span></div>
+      <div class="smlist">
+        <button type="button" data-act="new">新しいゲーム</button>
+        <button type="button" data-act="pause">一時停止</button>
+        <button type="button" data-act="help">遊び方</button>
+        <hr>
+        <button type="button" data-act="quit">終了</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+const $=(s,r=document)=>r.querySelector(s);
+const desk=$('#desk'), field=$('#field'), fxc=$('#fx'), ctx=fxc.getContext('2d');
+const browser=$('#browser'), bpage=$('#bpage');
+const phone=$('#phone'), appwrap=$('#appwrap'), modern=$('#modern'), msite=$('#msite');
+const overlay=$('#overlay'), dlgBody=$('#dlgBody'), dlgTitle=$('#dlgTitle'), bsod=$('#bsod');
+const elScore=$('#score'), elCombo=$('#combo'), elRank=$('#rank'), elCpu=$('#cpuNum'), segs=$('#segs');
+const elStage=$('#stageNum'), elClock=$('#clock'), tasks=$('#tasks'), cross=$('#cross'), taskbar=$('#taskbar');
+const startBtn=$('#startBtn'), startMenu=$('#startMenu'), cpuItem=$('#cpuItem');
+const hc=$('#hist'), hctx=hc.getContext('2d');
+const bsegs=$('#bsegs'), bombsEl=$('#bombs'), bombBtn=$('#bombBtn');
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const WAVE_GOAL=8, LAST_WAVE=10, BOMB_MAX=3, LAST_STAGE=4;
+const BOSSKIND={1:'boss',2:'bboss',3:'vboss',4:'vendors'};
+const BOSSSET={boss:1,bboss:1,vboss:1,vendors:1};
+const ANCHORED={inter:1,video:1,vboss:1,vendors:1,cookie:1,chat:1,notif:1,drop:1};
+const NOSPLIT={boss:1,bboss:1,vboss:1,vendors:1,video:1};
+
+/* ---------- art ---------- */
+const ICO={
+ warn:'<svg width="32" height="32" viewBox="0 0 32 32"><path d="M16 2 L31 29 L1 29 Z" fill="#ffff00" stroke="#000"/><rect x="14" y="11" width="4" height="10" fill="#000"/><rect x="14" y="23" width="4" height="3" fill="#000"/></svg>',
+ err:'<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#d00000" stroke="#000"/><rect x="8" y="14" width="16" height="4" fill="#fff" transform="rotate(45 16 16)"/><rect x="8" y="14" width="16" height="4" fill="#fff" transform="rotate(-45 16 16)"/></svg>',
+ info:'<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#0000c0" stroke="#000"/><rect x="14" y="7" width="4" height="4" fill="#fff"/><rect x="14" y="13" width="4" height="12" fill="#fff"/></svg>',
+ ques:'<svg width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="#0000c0" stroke="#000"/><path d="M11 11a5 5 0 1 1 6 5v3h-3v-5a4 4 0 1 0-1-4z" fill="#fff"/><rect x="14" y="23" width="4" height="3" fill="#fff"/></svg>',
+ skull:'<svg width="40" height="40" viewBox="0 0 32 32"><rect x="5" y="4" width="22" height="18" fill="#e8e8e8" stroke="#000"/><rect x="9" y="10" width="5" height="5" fill="#000"/><rect x="18" y="10" width="5" height="5" fill="#000"/><rect x="14" y="17" width="4" height="3" fill="#000"/><rect x="8" y="23" width="16" height="5" fill="#e8e8e8" stroke="#000"/><rect x="12" y="23" width="2" height="5" fill="#000"/><rect x="18" y="23" width="2" height="5" fill="#000"/></svg>',
+ globe:'<svg width="32" height="32" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="#0aa" stroke="#000"/><path d="M1 8h14M8 1v14M4 3c3 3 5 7 4 11M12 3c-3 3-5 7-4 11" fill="none" stroke="#fff"/></svg>'
+};
+const DESK_ICONS=[
+ ['マイ コンピュータ','<svg width="32" height="32" viewBox="0 0 16 16"><rect x="1" y="2" width="13" height="10" fill="#c0c0c0" stroke="#000"/><rect x="2" y="3" width="11" height="7" fill="#008080"/><rect x="3" y="4" width="4" height="1" fill="#0ff"/><rect x="5" y="12" width="6" height="2" fill="#808080"/><rect x="2" y="13" width="13" height="2" fill="#c0c0c0" stroke="#000"/><rect x="12" y="14" width="2" height="1" fill="#00a800"/></svg>'],
+ ['ごみ箱','<svg width="32" height="32" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="2" fill="#c0c0c0" stroke="#000"/><path d="M3 4 h10 l-1 10 h-8 z" fill="#c0c0c0" stroke="#000"/><rect x="6" y="6" width="1" height="7" fill="#808080"/><rect x="9" y="6" width="1" height="7" fill="#808080"/></svg>'],
+ ['ネットワーク','<svg width="32" height="32" viewBox="0 0 16 16"><rect x="0" y="1" width="10" height="7" fill="#c0c0c0" stroke="#000"/><rect x="1" y="2" width="8" height="5" fill="#000080"/><rect x="6" y="8" width="10" height="7" fill="#c0c0c0" stroke="#000"/><rect x="7" y="9" width="8" height="5" fill="#008080"/></svg>'],
+ ['インターネット',ICO.globe],
+ ['受信トレイ','<svg width="32" height="32" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" fill="#fff" stroke="#000"/><path d="M1 3 l7 6 l7-6" fill="none" stroke="#000"/></svg>']
+];
+
+/* ---------- stage 1 content ---------- */
+const ADS=[
+ {t:'当選のお知らせ',i:'info',l:'おめでとうございます！<br>あなたは <b>1,000,000人目</b> の訪問者です。',b:['OK','キャンセル'],blink:1},
+ {t:'セキュリティ警告',i:'warn',l:'ウイルスが <b>38件</b> 見つかりました。<br>今すぐスキャンしてください。',b:['駆除する','あとで'],blink:1},
+ {t:'通知の許可',i:'ques',l:'このサイトから通知を送信しても<br>よろしいですか？',b:['許可','ブロック']},
+ {t:'Cookie の設定',i:'info',l:'当サイトは <b>412社</b> のパートナーと<br>Cookie を共有します。',b:['すべて同意','詳細設定']},
+ {t:'メールマガジン',i:'info',l:'週7回のお得情報をお届け！<br><b>いまなら初月無料</b>。',b:['購読する','×']},
+ {t:'システムの最適化',i:'warn',l:'PC の動作が <b>72%</b> 遅くなっています。',b:['高速化','無視'],blink:1},
+ {t:'アンケートのお願い',i:'ques',l:'所要時間はたった3秒です。<br>（※実際は12分かかります）',b:['回答する','いいえ']},
+ {t:'アプリのご案内',i:'info',l:'アプリで見るともっと快適。<br>ブラウザは <b>非推奨</b> です。',b:['アプリで開く','Web で続行']},
+ {t:'期間限定キャンペーン',i:'warn',l:'月額980円が <b>今だけ0円</b>。<br>残り 00:03 で終了します。',b:['0円で開始','閉じる'],blink:1},
+ {t:'回線速度の診断',i:'info',l:'あなたの回線は平均より<br><b>遅い</b> 可能性があります。',b:['診断する','OK']},
+ {t:'新着メッセージ',i:'info',l:'近所の <b>独身者</b> が<br>あなたを待っています。',b:['見てみる','削除']},
+ {t:'アクセス記録',i:'err',l:'あなたの IP アドレスが<br>記録されました。',b:['詳細','OK']},
+ {t:'広告ブロックの検出',i:'err',l:'広告ブロッカーを解除しないと<br>続きは読めません。',b:['解除する','閉じる']},
+ {t:'ポイント進呈',i:'info',l:'ログインするだけで <b>3,000pt</b>。<br>有効期限は本日までです。',b:['受け取る','いらない']},
+ {t:'コーデックが必要です',i:'warn',l:'動画の再生には専用プレイヤーの<br>インストールが必要です。',b:['インストール','中止']}
+];
+const SLIP=[
+ {t:'閉じられません',i:'err',l:'✕ ボタンは移動します。<br>落ち着いて置き撃ちしてください。',b:['OK','OK']},
+ {t:'本当によろしいですか',i:'ques',l:'本当に閉じますか？<br><b>本当に？</b> 本当の本当に？',b:['はい','いいえ']},
+ {t:'離脱防止',i:'warn',l:'ちょっと待って！<br>ページを離れる前にこれだけは。',b:['待つ','待たない']}
+];
+const HEAVY=[
+ {t:'ツールバーのインストール',i:'warn',l:'3つの拡張機能をインストール中です。<br>中断できません。'},
+ {t:'Windows の更新',i:'info',l:'再起動が必要です。<br>作業内容は保存されません。'},
+ {t:'動画の自動再生',i:'err',l:'音量 100% で広告を再生しています。'}
+];
+const BOSSES=[
+ {t:'WARNING!! WARNING!!',l:'システムが乗っ取られました。<br>すべてのファイルを暗号化しています。'},
+ {t:'WARNING!! WARNING!!',l:'無料ダウンロード 1,204件 を<br>同時に開始しました。'},
+ {t:'WARNING!! WARNING!!',l:'SYSTEM32 を削除しています。<br>残り 00:00:03'},
+ {t:'WARNING!! WARNING!!',l:'あなたのデスクトップは<br>広告代理店に買収されました。'}
+];
+
+/* ---------- stage 2 content ---------- */
+const WEBADS=[
+ {a:'＼ 1日5分で月収50万円 ／',b:'▼ 詳しくはコチラ ▼'},
+ {a:'★☆ 出会いは ここから ☆★',b:'いま 1,204人 が待機中'},
+ {a:'あなたのパソコン、重くありませんか？',b:'無料診断はこちら'},
+ {a:'懸賞総額 1億円！ 応募はカンタン',b:'メール登録だけ'},
+ {a:'激安！ 海外通販 90%OFF',b:'CLICK ! CLICK ! CLICK !'},
+ {a:'無料ゲームで遊び放題♪',b:'登録不要・今すぐプレイ'},
+ {a:'アクセスアップしませんか？',b:'相互リンク募集中'},
+ {a:'待受画像・着メロ 取り放題',b:'月額たったの300円'}
+];
+const MENUS=[
+ {h:'▼ おすすめメニュー',it:[['無料ゲーム','▶'],['懸賞情報','▶'],['出会い','▶'],['副業・内職','▶'],['占い','▶']]},
+ {h:'▼ 人気ランキング',it:[['ダイエット','▶'],['育毛','▶'],['英会話','▶'],['投資','▶'],['転職','▶']]},
+ {h:'▼ 関連サイト',it:[['姉妹サイト','▶'],['相互リンク','▶'],['掲示板','▶'],['メルマガ','▶'],['管理人室','▶']]},
+ {h:'▼ さらに表示',it:[['もっと見る','▶'],['その他','▶'],['一覧','▶'],['過去ログ','▶'],['全部','▶']]}
+];
+const DROPS=[
+ '▼ ただいまキャンペーン中！ 今なら初回無料 ▼',
+ '▼ このページを離れる前に アンケートにご協力ください ▼',
+ '▼ 会員登録で 3,000ポイント プレゼント中 ▼',
+ '▼ お使いのブラウザは古い可能性があります ▼'
+];
+const INTERS=[
+ {h:'全画面広告',t:'この広告は <b>5秒後</b> に閉じられます。<br>（※閉じられません）',v:'▶ 広告動画を再生中…'},
+ {h:'PR',t:'こちらの商品が<br><b>あなたにおすすめ</b> です。',v:'▶ 商品紹介ムービー'},
+ {h:'重要なお知らせ',t:'続きを読むには<br><b>会員登録</b> が必要です。',v:'▶ 登録手順のご案内'}
+];
+const BOSSES2=[
+ {a:'▲▼▲ 超高収入バイト ▲▼▲',b:'CLICK HERE !!!'},
+ {a:'☆★☆ 完全無料 出会い ☆★☆',b:'NOW LOADING...'},
+ {a:'＄＄ 誰でも月収100万 ＄＄',b:'ACCESS UP !!'},
+ {a:'▲▼▲ 最終警告 広告です ▲▼▲',b:'DO NOT CLOSE'}
+];
+
+/* ---------- stage 3 content ---------- */
+const APPADS=[
+ {t:'パズル de 神引き',s:'★4.7 · 無料 · ゲーム',c:'インストール',i:''},
+ {t:'放置で最強 RPG',s:'★4.9 · 無料 · アプリ内課金あり',c:'今すぐ入手',i:'g'},
+ {t:'マッチ3 の頂点へ',s:'あと 1 手 でクリアでした！',c:'プレイする',i:'p'},
+ {t:'歩くだけでポイント',s:'★4.2 · 無料 · 位置情報を使用',c:'受け取る',i:'g'},
+ {t:'この漫画がいま無料',s:'1〜42話 期間限定公開',c:'読む',i:'p'},
+ {t:'あなたにピッタリの副業',s:'スマホ1台・1日10分',c:'診断する',i:''}
+];
+const VIDADS=[
+ {h:'この動画を最後まで見ると',t:'<b>ハート 5個</b> がもらえます。',v:'▶ 広告 0:12 / 0:30'},
+ {h:'つづきをプレイするには',t:'<b>動画広告</b> の視聴が必要です。',v:'▶ 広告 0:04 / 0:30'},
+ {h:'ボーナスチャンス',t:'いま視聴すると <b>コイン 3倍</b>。',v:'▶ 広告 0:21 / 0:30'}
+];
+const FAKEADS=[
+ {t:'このアプリを消しますか？',s:'本物の ✕ は角にぴったり付いています'},
+ {t:'限定クーポン 90%OFF',s:'※ 閉じるボタンは 2つ あります'},
+ {t:'お使いの端末が危険です',s:'今すぐ無料スキャン（推奨）'}
+];
+const NOTIFS=[
+ {t:'ハートが回復しました！',m:'いまなら 3連ガチャが無料で引けます'},
+ {t:'【速報】あなたの街で…',m:'続きはアプリでご覧ください'},
+ {t:'本日限りのタイムセール',m:'カートの商品が値下がりしました'},
+ {t:'今日はまだ 312歩 です',m:'目標まであと 9,688歩'},
+ {t:'未読メールが 1,204件',m:'すべて広告です'}
+];
+const VBOSSES=[
+ {h:'スキップできない広告',t:'この広告は最後まで再生されます。<br>アプリを閉じても再開します。'},
+ {h:'30秒 リワード広告',t:'報酬を受け取るには<br>視聴を完了してください。'},
+ {h:'広告のあとに広告',t:'この広告のあと、<br>もう一本の広告が再生されます。'}
+];
+/* ---------- stage 4 content ---------- */
+const COOKIES=[
+ 'このサイトでは、体験を向上させるために Cookie を使用しています。',
+ '当社と <b>842社</b> のパートナーが、あなたのデータを処理します。',
+ 'パーソナライズド広告のため、閲覧履歴を共有します。',
+ '「すべて同意」を押すと、すぐに読みはじめられます。'
+];
+const NESTNAMES=[
+ ['プライバシー設定','詳細設定','ベンダー別の同意'],
+ ['Cookie の設定','カテゴリ別設定','個別の同意管理']
+];
+const GUILTS=[
+ {h:'ニュースレターを購読しませんか？',p:'週1回、選りすぐりの情報だけをお届けします。',y:'はい、お得情報がほしい',n:'いいえ、私は損をし続けます'},
+ {h:'本当にこのページを離れますか？',p:'いま登録すると初回 20%OFF クーポンが使えます。',y:'クーポンを受け取る',n:'いいえ、定価で買います'},
+ {h:'通知を受け取りますか？',p:'重要なお知らせのみお送りします（1日3〜8回）。',y:'受け取る（推奨）',n:'受け取らない（機会損失）'}
+];
+const CHATS=[
+ '何かお困りですか？ 担当者が 30秒以内にお答えします。',
+ 'はじめまして！ このページ、わかりにくくないですか？',
+ 'いまなら無料相談を受付中です。お気軽にどうぞ。'
+];
+const VENDORCOS=['Adtech Northwind','木曽川データ','Apex Media','Lumen Analytics','みどり広告','Vector Reach','Solstice DMP','なぎそ計測','Pixel Harbor','Orchid Bid','Kite Audience','雲海アド','Granite Track','Sable Insights'];
+
+/* ---------- state ---------- */
+const LOAD={normal:8,slippery:11,heavy:15,blocker:5,boss:30,ban:8,menu:9,drop:14,inter:22,bboss:28,
+  appban:9,video:19,fakex:11,notif:10,vboss:30,cookie:12,nest:13,guilt:11,chat:7,vendors:28};
+const G={running:false,paused:false,over:false,clearing:false,pendingClear:false,
+  stage:1,wave:1,waveKills:0,pops:[],score:0,combo:0,maxCombo:0,kills:0,elapsed:0,
+  spawnIn:900,last:0,shake:0,mx:-999,my:-999,best:0,blockCd:16,cpu:3,
+  bossNo:0,sboss:0,boss:null,bossTimer:0,menuOpen:false,hist:[],histT:0,
+  charge:0,bombs:0,bombsUsed:0,W:800,H:500,top:0,bot:500,left:0,right:800};
+const parts=[];
+
+function loadBest(){try{const v=+localStorage.getItem('popuphunt95.best');if(!isNaN(v))G.best=v;}catch(e){}}
+function saveBest(){try{localStorage.setItem('popuphunt95.best',String(G.best));}catch(e){}}
+
+/* ---------- audio ---------- */
+let AC=null;
+function ac(){ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function tone(f0,f1,dur,type,vol,delay){
+  const a=ac(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(), t=a.currentTime+(delay||0);
+  o.type=type||'square'; o.frequency.setValueAtTime(f0,t);
+  if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+dur);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||.05,t+.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.04);
+}
+const sfxHit=c=>tone(600+Math.min(c,16)*40,1400+Math.min(c,16)*50,.07,'square',.05);
+const sfxMiss=()=>{tone(200,200,.09,'square',.07);tone(140,90,.22,'square',.06,.1);};
+const sfxDud=()=>tone(110,110,.05,'square',.03);
+const sfxSplit=()=>tone(340,120,.18,'sawtooth',.05);
+const sfxHeavy=()=>tone(300,360,.05,'square',.045);
+const sfxBlock=()=>[523,659,784,1046].forEach((f,i)=>tone(f,f,.11,'triangle',.05,i*.06));
+const sfxWave=()=>{tone(523,523,.1,'square',.05);tone(784,784,.16,'square',.05,.11);};
+const sfxBossHit=()=>{tone(90,70,.06,'sawtooth',.07);tone(420,300,.05,'square',.04);};
+const sfxAlarm=()=>{for(let i=0;i<4;i++)tone(880,440,.18,'sawtooth',.07,i*.22);};
+const sfxBossDie=()=>[880,660,440,330,220,110].forEach((f,i)=>tone(f,f*.5,.22,'sawtooth',.08,i*.1));
+const sfxDing=()=>{tone(988,988,.09,'sine',.05);tone(1319,1319,.16,'sine',.05,.09);};
+const sfxOver=()=>[330,247,175,110].forEach((f,i)=>tone(f,f*.55,.34,'sawtooth',.08,i*.15));
+const sfxCharged=()=>[784,1047,1568].forEach((f,i)=>tone(f,f,.12,'square',.05,i*.07));
+const sfxBomb=()=>{tone(1800,60,.5,'sawtooth',.09);tone(120,40,.7,'square',.08,.02);
+  [1047,1319,1568,2093].forEach((f,i)=>tone(f,f,.1,'triangle',.04,.14+i*.05));};
+const sfxClick=()=>tone(1500,900,.03,'square',.025);
+const sfxClear=()=>[523,659,784,1047,1319,1568].forEach((f,i)=>tone(f,f,.18,'square',.055,i*.1));
+const sfxDial=()=>{[[1200,.12],[950,.12],[1400,.1]].forEach((p,i)=>tone(p[0],p[0],p[1],'sine',.04,i*.14));
+  tone(300,900,.9,'sawtooth',.03,.5);};
+
+/* ---------- canvas ---------- */
+function sizeCanvas(){
+  const r=desk.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2);
+  fxc.width=Math.max(1,Math.round(r.width*d)); fxc.height=Math.max(1,Math.round(r.height*d));
+  fxc.style.width=r.width+'px'; fxc.style.height=r.height+'px';
+  ctx.setTransform(d,0,0,d,0,0);
+}
+function updateArea(){
+  const r=desk.getBoundingClientRect();
+  G.W=r.width; G.H=r.height;
+  let el=null;
+  if(G.stage===2&&!browser.hidden) el=bpage;
+  else if(G.stage===3&&!phone.hidden) el=appwrap;
+  else if(G.stage===4&&!modern.hidden) el=msite;
+  if(el){
+    const a=el.getBoundingClientRect();
+    G.left=Math.max(0,a.left-r.left);   G.right=Math.min(r.width,a.right-r.left);
+    G.top=Math.max(0,a.top-r.top);      G.bot=Math.min(r.height,a.bottom-r.top);
+  } else { G.left=0; G.right=r.width; G.top=0; G.bot=r.height; }
+  if(G.right-G.left<150) G.right=Math.min(r.width,G.left+150);
+  if(G.bot-G.top<150) G.bot=Math.min(r.height,G.top+150);
+}
+addEventListener('resize',()=>{sizeCanvas();updateArea();clampAll();});
+
+function burst(x,y,color,n){
+  const cnt=REDUCED?Math.round(n*.4):n;
+  for(let i=0;i<cnt;i++){
+    const a=Math.random()*6.283, s=60+Math.random()*300;
+    parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-70,life:.5+Math.random()*.45,max:.95,col:color,size:3+Math.random()*7});
+  }
+  parts.push({ring:true,x,y,r:5,rv:360,life:.35,max:.35,col:color});
+}
+function drawFx(dt){
+  ctx.clearRect(0,0,fxc.width,fxc.height);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i]; p.life-=dt;
+    if(p.life<=0){parts.splice(i,1);continue;}
+    const al=Math.max(0,p.life/p.max);
+    if(p.ring){ p.r+=p.rv*dt; ctx.globalAlpha=al*.8; ctx.strokeStyle=p.col; ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.stroke(); }
+    else { p.vy+=680*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; ctx.globalAlpha=al; ctx.fillStyle=p.col;
+      ctx.fillRect(Math.round(p.x),Math.round(p.y),Math.round(p.size),Math.round(p.size)); }
+  }
+  ctx.globalAlpha=1;
+}
+function drawHist(){
+  const w=hc.width,h=hc.height;
+  hctx.fillStyle='#000';hctx.fillRect(0,0,w,h);
+  hctx.strokeStyle='#0a3a0a';hctx.lineWidth=1;
+  for(let y=h/3;y<h;y+=h/3){hctx.beginPath();hctx.moveTo(0,y+.5);hctx.lineTo(w,y+.5);hctx.stroke();}
+  hctx.strokeStyle=G.cpu>=80?'#ff4040':G.cpu>=55?'#ffff40':'#40ff40';
+  hctx.beginPath();
+  const n=G.hist.length;
+  for(let i=0;i<n;i++){const x=w-(n-1-i)*(w/43), y=h-(G.hist[i]/100)*h; i?hctx.lineTo(x,y):hctx.moveTo(x,y);}
+  hctx.stroke();
+}
+
+/* ---------- popup construction ---------- */
+function pick(a){return a[(Math.random()*a.length)|0];}
+function narrowNow(){return (G.right-G.left)<560;}
+function menuCol(i){
+  const m=MENUS[i%MENUS.length];
+  return '<div class="mcol" style="margin-top:'+(i*15)+'px"><div class="mhead">'+m.h+'</div>'+
+    m.it.map((x,k)=>'<div class="mitem'+(k===1?' hot':'')+'"><span>'+x[0]+'</span><em>'+x[1]+'</em></div>').join('')+'</div>';
+}
+function dropRow(i){
+  return '<div class="dr">'+DROPS[i%DROPS.length]+'<div class="ar">▼ ▼ ▼ CLICK ▼ ▼ ▼</div></div>';
+}
+function makeWin(kind){
+  const nw=narrowNow();
+  const el=document.createElement('div');
+  let title='広告', w=200;
+  if(kind==='boss'){
+    const d=BOSSES[Math.min(G.sboss,BOSSES.length-1)];
+    const hp=10+G.sboss*5+G.wave;
+    w=Math.min(G.W-24, nw?300:380); title=d.t;
+    el.className='pop boss';
+    el.innerHTML='<div class="bar"><span class="ttl">'+d.t+'</span><button class="tbtn x" type="button" aria-label="閉じる">✕</button></div>'+
+      '<div class="dim">'+ICO.skull+'<div class="tx">'+d.l+'</div></div>'+
+      '<div class="hpwrap"><div class="hplbl"><span>強制終了の進捗</span><span class="hpn">0%</span></div>'+
+      '<div class="prog"><i style="width:0%"></i></div></div>'+
+      '<div class="hint">終了するには ✕ を <b class="rem">あと '+hp+' 回</b> クリック</div>';
+    el._hp=hp;
+  } else if(kind==='bboss'){
+    const d=BOSSES2[Math.min(G.sboss,BOSSES2.length-1)];
+    const hp=8+G.sboss*3;
+    w=nw?236:300; title='[AD] '+d.a;
+    el.className='pop web bboss';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="bb">'+d.a+'</div><div class="bsub rem">強制終了まで あと '+hp+'</div>'+
+      '<div class="hpbar"><i style="width:0%"></i></div>';
+    el._hp=hp;
+  } else if(kind==='ban'){
+    const d=pick(WEBADS); w=nw?208:264; title='[AD] '+d.a;
+    el.className='pop web ban';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="bc">'+d.a+'</div><div class="sb">'+d.b+'</div>';
+  } else if(kind==='menu'){
+    w=0; title='延長メニュー';
+    el.className='pop web menu';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+menuCol(0);
+  } else if(kind==='drop'){
+    w=Math.max(180,(G.right-G.left)-16); title='プルダウン広告';
+    el.className='pop web drop';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+dropRow(0);
+  } else if(kind==='inter'){
+    const d=pick(INTERS); w=Math.min((G.right-G.left)-40, nw?276:350); title='全画面広告';
+    el.className='pop web inter';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="ih">'+d.h+'</div><div class="ib">'+d.t+
+      '<div class="fakevid">'+d.v+'</div></div>'+
+      '<div class="skip">閉じるには右上の小さな ✕ をクリック</div>';
+  } else if(kind==='blocker'){
+    w=nw?206:250; title='ADBLOCK.EXE';
+    el.className='pop help';
+    el.innerHTML='<div class="bar"><span class="ttl">ADBLOCK.EXE</span>'+
+      '<button class="tbtn" type="button" tabindex="-1" aria-hidden="true">_</button>'+
+      '<button class="tbtn" type="button" tabindex="-1" aria-hidden="true">□</button>'+
+      '<button class="tbtn x" type="button" aria-label="閉じる">✕</button></div>'+
+      '<div class="dim">'+ICO.info+'<div class="tx">画面上のポップアップを<br><b>すべて</b> 終了します。</div></div>'+
+      '<div class="btns"><button class="b95 def" type="button" tabindex="-1">実行</button><button class="b95" type="button" tabindex="-1">キャンセル</button></div>';
+  } else if(kind==='appban'||kind==='fakex'){
+    const isF=kind==='fakex';
+    const d=isF?pick(FAKEADS):pick(APPADS);
+    w=nw?196:228; title='[広告] '+d.t;
+    el.className='pop app';
+    const fake=isF?('<button class="tbtn xf" type="button" tabindex="-1" aria-hidden="true" style="'+
+      (Math.random()<.5?'top:10px;right:10px':'top:32px;right:5px')+'">✕</button>'):'';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+fake+
+      '<div class="apr">広告</div>'+
+      '<div class="ahead"><div class="aico '+(d.i||'')+'"></div><div class="atx"><b>'+d.t+'</b><span>'+d.s+'</span></div></div>'+
+      '<div class="ains">'+(d.c||'くわしく見る')+'</div>';
+  } else if(kind==='video'){
+    const d=pick(VIDADS); const aw=G.right-G.left;
+    w=Math.min(aw-20, nw?248:300); title='[広告] リワード動画';
+    el.className='pop app';
+    el.innerHTML='<button class="tbtn x locked" type="button" aria-label="閉じる">5</button><div class="apr">広告</div>'+
+      '<div class="vid">'+d.v+'</div>'+
+      '<div class="vcap">'+d.h+'<br>'+d.t+'</div><div class="ains">報酬を受け取る</div>';
+  } else if(kind==='notif'){
+    const d=pick(NOTIFS); const aw=G.right-G.left;
+    w=Math.min(aw-16, 320); title='通知';
+    el.className='pop app notif';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button><div class="ntime">今</div>'+
+      '<div class="nrow"><div class="nico"></div><div class="ntx"><b>'+d.t+'</b><span>'+d.m+'</span></div></div>';
+  } else if(kind==='vboss'){
+    const d=VBOSSES[Math.min(G.sboss,VBOSSES.length-1)];
+    const aw=G.right-G.left;
+    w=Math.max(180,aw-14); title='[広告] スキップ不可';
+    el.className='pop app vboss';
+    el.innerHTML='<button class="tbtn x locked" type="button" aria-label="閉じる">30</button>'+
+      '<div class="cd">広告 <span class="cdn">30</span> 秒</div>'+
+      '<div class="vscreen"><div><h3>'+d.h+'</h3><p>'+d.t+'</p><div class="ains">報酬を受け取る</div></div></div>'+
+      '<div class="vbar"><i style="width:0%"></i></div>';
+    el._hp=1;
+  } else if(kind==='cookie'){
+    const aw=G.right-G.left;
+    w=Math.min(aw-16,470); title='Cookie の同意';
+    el.className='pop dark cookie';
+    el.innerHTML='<div class="dp"><h5>Cookie の使用について</h5>'+pick(COOKIES)+'</div>'+
+      '<div class="drow"><div class="accept">すべて同意する</div>'+
+      '<button class="tbtn x" type="button" aria-label="拒否">拒否</button></div>';
+  } else if(kind==='nest'){
+    const names=pick(NESTNAMES);
+    w=nw?226:264; title=names[0];
+    el.className='pop dark';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="dp"><h5 class="nh">'+names[0]+'</h5>あなたのプライバシーは私たちにとって重要です。用途ごとに設定できます。</div>'+
+      '<div class="tog"><span>必須 Cookie</span><i></i></div>'+
+      '<div class="tog"><span>パフォーマンス</span><i></i></div>'+
+      '<div class="tog"><span>ターゲティング広告</span><i></i></div>';
+    el._names=names;
+  } else if(kind==='guilt'){
+    const d=pick(GUILTS);
+    w=nw?236:290; title=d.h;
+    el.className='pop dark';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="dp"><h5>'+d.h+'</h5>'+d.p+'</div>'+
+      '<div class="drow"><div class="accept">'+d.y+'</div><div class="decline">'+d.n+'</div></div>';
+  } else if(kind==='chat'){
+    w=nw?206:238; title='サポートチャット';
+    el.className='pop dark chat';
+    el.innerHTML='<button class="tbtn x" type="button" aria-label="閉じる">✕</button>'+
+      '<div class="chead">サポート担当 みどり</div>'+
+      '<div class="cbub">'+pick(CHATS)+'</div><div class="cinp">メッセージを入力…</div>';
+  } else if(kind==='vendors'){
+    const aw=G.right-G.left;
+    const hp=12+G.sboss*3;
+    w=Math.min(aw-20, nw?270:340); title='ベンダーリスト (842社)';
+    let rows='';
+    for(let i=0;i<14;i++) rows+='<div class="vrow"><span>'+VENDORCOS[i%VENDORCOS.length]+'</span><i></i></div>';
+    el.className='pop dark vendors';
+    el.innerHTML='<div class="vhead"><h5>ベンダーリスト</h5><span class="rem">残り '+(hp*60)+' 社</span></div>'+
+      '<div class="vwrap"><div class="vlist">'+rows+rows+'</div>'+
+      '<button class="tbtn x" type="button" aria-label="拒否する">拒否する</button></div>'+
+      '<div class="vfoot">※ すべてのベンダーの「正当な利益」に既に同意済みです</div>';
+    el._hp=hp;
+  } else {
+    let d;
+    if(kind==='slippery') d=pick(SLIP);
+    else if(kind==='heavy') d=pick(HEAVY);
+    else d=pick(ADS);
+    w=kind==='slippery'?(nw?206:252):kind==='heavy'?(nw?214:266):(nw?198+Math.random()*26:232+Math.random()*54);
+    title=d.t;
+    const pips=kind==='heavy'?'<div class="pips"><i></i><i></i><i></i></div>':'';
+    const prog=kind==='heavy'?'<div class="prog"><i style="width:46%"></i></div>':'';
+    const btns=d.b?'<div class="btns"><button class="b95 def" type="button" tabindex="-1">'+d.b[0]+'</button><button class="b95" type="button" tabindex="-1">'+d.b[1]+'</button></div>':'';
+    el.className='pop'+((d.blink&&kind==='normal')?' blink':'');
+    el.innerHTML='<div class="bar"><span class="ttl">'+d.t+'</span>'+pips+
+      '<button class="tbtn" type="button" tabindex="-1" aria-hidden="true">_</button>'+
+      '<button class="tbtn" type="button" tabindex="-1" aria-hidden="true">□</button>'+
+      '<button class="tbtn x" type="button" aria-label="閉じる">✕</button></div>'+
+      '<div class="dim">'+ICO[d.i]+'<div class="tx">'+d.l+'</div></div>'+prog+btns;
+  }
+  if(w) el.style.width=Math.round(w)+'px';
+  return {el,title};
+}
+function countKind(k){let n=0;G.pops.forEach(p=>{if(p.kind===k)n++;});return n;}
+function rollKind(){
+  const r=Math.random();
+  if(G.stage<=2&&G.blockCd<=0&&G.pops.length>=5&&r<.05){G.blockCd=17;return 'blocker';}
+  if(G.stage===1){
+    if(G.wave>=2&&r<.19) return 'slippery';
+    if(G.wave>=2&&r<.34) return 'heavy';
+    return 'normal';
+  }
+  if(G.stage===2){
+    if(G.wave>=2&&r<.10&&countKind('inter')<1) return 'inter';
+    if(G.wave>=2&&r<.28&&countKind('drop')<2) return 'drop';
+    if(r<.58) return 'menu';
+    return 'ban';
+  }
+  if(G.stage===3){
+    if(G.wave>=2&&r<.13&&countKind('video')<1&&!G.boss) return 'video';
+    if(r<.40) return 'notif';
+    if(G.wave>=2&&r<.66) return 'fakex';
+    return 'appban';
+  }
+  if(G.wave>=2&&r<.17&&countKind('nest')<2) return 'nest';
+  if(r<.42&&countKind('cookie')<2) return 'cookie';
+  if(r<.72) return 'guilt';
+  if(countKind('chat')<2) return 'chat';
+  return 'guilt';
+}
+function basicKind(){return G.stage===1?'normal':G.stage===2?'ban':G.stage===3?'appban':'guilt';}
+function anchorPos(p){
+  const aw=G.right-G.left, ah=G.bot-G.top;
+  switch(p.kind){
+    case 'inter': case 'video': case 'vboss': case 'vendors':
+      p.x=G.left+(aw-p.w)/2; p.y=G.top+(ah-p.h)/2; break;
+    case 'cookie': p.x=G.left+(aw-p.w)/2; p.y=G.bot-p.h-6; break;
+    case 'chat':   p.x=G.right-p.w-10;    p.y=G.bot-p.h-10; break;
+    case 'notif':  p.x=G.left+(aw-p.w)/2; p.y=G.top+8-(1-p.slide)*(p.h+18); break;
+    case 'drop':   p.x=G.left+4;          p.y=G.top-p.h*(1-p.slide); break;
+  }
+  p.x=Math.max(G.left-2,Math.min(p.x,Math.max(G.left-2,G.right-p.w+2)));
+}
+function loadOf(p){
+  if(p.kind==='menu') return 9+(p.level-1)*4;
+  if(p.kind==='drop') return 14+(p.level-1)*5;
+  return LOAD[p.kind]||8;
+}
+
+function spawn(kind,nx,ny){
+  if(G.pops.length>=20||G.clearing) return null;
+  kind=kind||rollKind();
+  if(BOSSSET[kind]&&G.boss) kind=basicKind();
+  if(kind==='inter'&&countKind('inter')>=1) kind='ban';
+  if(kind==='video'&&countKind('video')>=1) kind='appban';
+  const made=makeWin(kind), el=made.el;
+  field.appendChild(el);
+  const w=el.offsetWidth, h=el.offsetHeight;
+  const aw=Math.max(80,G.right-G.left), ah=Math.max(60,G.bot-G.top);
+  const anchor=!!ANCHORED[kind];
+  let x=G.left,y=G.top,vx=0,vy=0;
+  if(!anchor){
+    x=nx!=null?nx:G.left+8+Math.random()*Math.max(1,aw-w-16);
+    y=ny!=null?ny:G.top+Math.random()*Math.max(1,ah-h-8);
+    const sp=(kind==='boss')?22:(kind==='bboss')?54:(15+G.wave*4);
+    const a=Math.random()*6.283; vx=Math.cos(a)*sp; vy=Math.sin(a)*sp;
+  }
+  const ttl=NOSPLIT[kind]?9e9:(kind==='notif'?Math.max(2.2,4.0-(G.wave-1)*.13)
+              :Math.max(4.0,9.6-(G.wave-1)*0.38));
+  const p={el,kind,title:made.title,level:1,anchor,leaving:false,
+    slide:(kind==='drop'||kind==='notif')?0:1, scale:kind==='inter'?.34:1,
+    hp:kind==='heavy'?3:(kind==='nest'?3:(BOSSSET[kind]?el._hp:1)),
+    hpMax:BOSSSET[kind]?el._hp:(kind==='nest'?3:1),
+    x,y,vx,vy,w,h,ttl,ttl0:ttl,phase:Math.random()*6,xoff:0,urgent:false,corner:0,cornerT:1.1,
+    locked:(kind==='video'||kind==='vboss'),
+    cd:kind==='vboss'?(20+G.sboss*4):(kind==='video'?Math.min(7,4+G.wave*.15):0),
+    vpos:140, nestNames:el._names||null, respawn:0,
+    xbtn:el.querySelector('.tbtn.x'), fakeBtn:el.querySelector('.tbtn.xf'),
+    pipEls:[...el.querySelectorAll('.pips i')],
+    hpFill:el.querySelector('.prog i')||el.querySelector('.hpbar i')||el.querySelector('.vbar i'),
+    hpNum:el.querySelector('.hpn'), rem:el.querySelector('.rem'), cdn:el.querySelector('.cdn')};
+  p.cd0=p.cd||1;
+  if(!anchor){
+    p.x=Math.max(G.left,Math.min(p.x,Math.max(G.left,G.right-w)));
+    p.y=Math.max(G.top,Math.min(p.y,Math.max(G.top,G.bot-h)));
+  } else anchorPos(p);
+  applyTransform(p);
+  G.pops.push(p); addTask(p);
+  if(BOSSSET[kind]){ G.boss=p; placeBossX(p); if(kind==='vendors') p.xbtn.style.top=p.vpos+'px'; }
+  return p;
+}
+function applyTransform(p,jx,jy){
+  const t='translate3d('+(p.x+(jx||0))+'px,'+(p.y+(jy||0))+'px,0)'+(p.scale!==1?' scale('+p.scale.toFixed(3)+')':'');
+  p.el.style.transform=t;
+  p.el.style.setProperty('--px',p.x+'px'); p.el.style.setProperty('--py',p.y+'px');
+}
+function placeBossX(p){
+  if(p.kind!=='bboss'||!p.xbtn) return;
+  const s=p.xbtn.offsetWidth||14;
+  const cs=[[-4,-4],[p.w-s+4,-4],[-4,p.h-s+4],[p.w-s+4,p.h-s+4]];
+  const c=cs[p.corner%4];
+  p.xbtn.style.left=c[0]+'px'; p.xbtn.style.top=c[1]+'px';
+}
+function addTask(p){
+  const b=document.createElement('button');
+  b.type='button'; b.className='taskbtn'; b.textContent=p.title;
+  b.addEventListener('click',()=>{
+    if(G.pops.indexOf(p)<0) return;
+    p.el.classList.remove('flash'); void p.el.offsetWidth; p.el.classList.add('flash');
+    b.classList.add('hot'); setTimeout(()=>b.classList.remove('hot'),400); sfxDud();
+  });
+  tasks.appendChild(b); p.task=b;
+}
+function addStaticTask(label){
+  const b=document.createElement('button');
+  b.type='button'; b.className='taskbtn'; b.textContent=label;
+  b.addEventListener('click',sfxDud); tasks.appendChild(b);
+}
+function clampAll(){
+  G.pops.forEach(p=>{
+    p.w=p.el.offsetWidth; p.h=p.el.offsetHeight;
+    if(p.anchor) anchorPos(p);
+    else{
+      p.x=Math.max(G.left,Math.min(p.x,Math.max(G.left,G.right-p.w)));
+      p.y=Math.max(G.top,Math.min(p.y,Math.max(G.top,G.bot-p.h)));
+    }
+    applyTransform(p);
+    if(p.kind==='bboss') placeBossX(p);
+  });
+}
+function remove(p,anim){
+  const i=G.pops.indexOf(p); if(i<0) return; G.pops.splice(i,1);
+  if(p.task) p.task.remove();
+  if(p===G.boss){ G.boss=null; if(G.pendingClear){G.pendingClear=false;setTimeout(stageClear,700);} }
+  if(anim){ p.el.classList.add('dying'); setTimeout(()=>p.el.remove(),190); }
+  else p.el.remove();
+}
+function floatText(x,y,txt,color,big){
+  const s=document.createElement('span');
+  s.className='float'+(big?' big':''); s.textContent=txt;
+  if(color) s.style.color=color;
+  s.style.left=x+'px'; s.style.top=y+'px';
+  field.appendChild(s); setTimeout(()=>s.remove(),820);
+}
+function banner(txt,alarm){
+  const b=document.createElement('div');
+  b.className='banner'+(alarm?' alarm':''); b.textContent=txt;
+  field.appendChild(b); setTimeout(()=>b.remove(),alarm?1550:1050);
+}
+function redFlash(){const d=document.createElement('div');d.className='redflash';desk.appendChild(d);setTimeout(()=>d.remove(),520);}
+function whiteFlash(){const d=document.createElement('div');d.className='whiteflash';desk.appendChild(d);setTimeout(()=>d.remove(),640);}
+function mult(){return Math.min(5,1+Math.floor(G.combo/5)*.5);}
+function rankOf(c){
+  if(c>=35)return['神業','#c00000'];if(c>=20)return['華麗','#806000'];
+  if(c>=10)return['NICE','#000080'];if(c>=5)return['GOOD','#007000'];return['—','#606060'];
+}
+
+/* ---------- bomb ---------- */
+function addCharge(n){
+  if(G.bombs>=BOMB_MAX){G.charge=Math.min(G.charge,99);return;}
+  G.charge+=n;
+  while(G.charge>=100&&G.bombs<BOMB_MAX){G.charge-=100;G.bombs++;bombReady();}
+  if(G.bombs>=BOMB_MAX) G.charge=Math.min(G.charge,99);
+}
+function bombReady(){ sfxCharged(); floatText((G.left+G.right)/2,G.top+(G.bot-G.top)*.22,'BOMB READY','#80ffff',true); }
+function bombRing(x,y,delay){
+  setTimeout(()=>{const r=document.createElement('div');r.className='bombring';
+    r.style.left=x+'px';r.style.top=y+'px';desk.appendChild(r);setTimeout(()=>r.remove(),580);},delay);
+}
+function fireBomb(){
+  if(!G.running||G.paused||G.over||G.clearing||G.bombs<=0) return;
+  G.bombs--; G.bombsUsed++;
+  const cx=(G.left+G.right)/2, cy=(G.top+G.bot)/2;
+  whiteFlash(); shake(22); sfxBomb();
+  if(!REDUCED){bombRing(cx,cy,0);bombRing(cx,cy,110);}
+  burst(cx,cy,'#ffffff',30);
+  G.pops.slice().forEach(p=>{
+    const d=Math.hypot(p.x+p.w/2-cx,p.y+p.h/2-cy);
+    setTimeout(()=>{
+      if(G.pops.indexOf(p)<0) return;
+      if(p.xbtn) p.xbtn.classList.add('pressed');
+      sfxClick(); burst(p.x+p.w-16,p.y+10,'#ffff80',5);
+      setTimeout(()=>{
+        if(G.pops.indexOf(p)<0) return;
+        if(p.kind==='vboss'){
+          if(p.locked){ p.cd=Math.max(0,p.cd-7); floatText(p.x+p.w/2,p.y+30,'広告スキップ −7秒','#80ffff',true); }
+          else bossDie(p);
+          if(p.xbtn) p.xbtn.classList.remove('pressed');
+          return;
+        }
+        if(p.kind==='boss'||p.kind==='bboss'||p.kind==='vendors'){
+          for(let k=0;k<3&&p.hp>0;k++) bossHit(p,p.x+p.w-20,p.y+11);
+          if(p.xbtn) p.xbtn.classList.remove('pressed');
+          return;
+        }
+        if(p.kind==='nest'){ for(let k=0;k<3&&p.hp>0;k++) nestHit(p,p.x+p.w-14,p.y+14); return; }
+        if(p.kind==='blocker'){ detonate(p); return; }
+        if(p.kind==='video'&&p.locked){ if(p.xbtn) p.xbtn.classList.remove('pressed'); return; }
+        kill(p,80,null,true);
+      },130);
+    },90+d*.5);
+  });
+  sync();
+}
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space'&&e.key!=='b'&&e.key!=='B') return;
+  if(!overlay.hidden||!bsod.hidden) return;
+  if(!G.running||G.paused||G.over) return;
+  e.preventDefault(); ac(); fireBomb();
+});
+bombBtn.addEventListener('click',()=>{ac();fireBomb();bombBtn.blur();});
+
+/* ---------- actions ---------- */
+function countKill(){
+  G.kills++; G.waveKills++;
+  const b=G.boss;
+  if(b&&b.kind==='vboss'&&b.locked){
+    b.cd=Math.max(0,b.cd-0.8);
+    floatText(b.x+b.w/2,b.y+18,'広告 −0.8秒','#80ffff');
+  }
+  if(G.waveKills>=WAVE_GOAL&&!G.clearing){
+    G.waveKills=0;
+    if(G.wave>=LAST_WAVE){ if(G.boss) G.pendingClear=true; else stageClear(); }
+    else nextWave();
+  }
+}
+function kill(p,base,label,noCharge){
+  const cx=p.x+p.w/2, cy=p.y+p.h/2;
+  G.combo++; G.maxCombo=Math.max(G.maxCombo,G.combo);
+  const gain=Math.round(base*mult()); G.score+=gain;
+  if(!noCharge) addCharge(6+Math.min(G.combo,20)*1.2);
+  burst(cx,cy,'#ffffff',14); burst(cx,cy,'#00a8ff',8);
+  floatText(cx,cy-6,'+'+gain,'#ffff80',G.combo>=10);
+  if(label) floatText(cx,cy+18,label,'#80ff80');
+  sfxHit(G.combo); remove(p,true); countKill(); sync();
+}
+function misclick(p,px,py){
+  G.combo=0; G.score=Math.max(0,G.score-50); G.charge*=.5;
+  burst(px,py,'#ff2020',10);
+  floatText(p.x+p.w/2,p.y+p.h/2,'誤クリック −50','#ff6060');
+  shake(9); sfxMiss();
+  spawn(G.stage===1?'normal':'ban',p.x+28,p.y+24);
+  sync();
+}
+function grow(p){
+  sfxSplit(); shake(5);
+  burst(p.x+p.w/2,p.y+p.h/2,'#ffff00',8);
+  if(p.kind==='menu'&&p.level<4){
+    p.level++; p.el.insertAdjacentHTML('beforeend',menuCol(p.level-1));
+    p.w=p.el.offsetWidth; p.h=p.el.offsetHeight;
+    p.x=Math.min(p.x,Math.max(G.left,G.right-p.w));
+    floatText(p.x+p.w/2,p.y-2,'メニュー展開','#ffff80');
+  } else if(p.kind==='drop'&&p.level<3){
+    p.level++; p.el.insertAdjacentHTML('beforeend',dropRow(p.level-1));
+    p.h=p.el.offsetHeight;
+    floatText(p.x+p.w/2,p.y+p.h,'広告追加','#ffff80');
+  } else {
+    floatText(p.x+p.w/2,p.y-2,'自己増殖','#ffff80');
+    spawn(basicKind(),p.x+30,p.y+26);
+  }
+  p.ttl=p.ttl0*.85; p.urgent=false; p.el.classList.remove('urgent');
+  applyTransform(p);
+}
+function escapeNotif(p){
+  const cx=p.x+p.w/2;
+  remove(p,false);
+  floatText(cx,G.top+26,'通知を見逃した','#ff6060',true);
+  shake(8); sfxSplit();
+  spawn('appban'); spawn('appban');
+  sync();
+}
+function fakeHit(p,px,py){
+  G.combo=0; G.score=Math.max(0,G.score-120); G.charge*=.4;
+  burst(px,py,'#ff2020',16); redFlash(); shake(15); sfxMiss();
+  floatText(p.x+p.w/2,p.y+p.h/2-8,'偽の ✕ −120','#ff6060',true);
+  floatText(p.x+p.w/2,p.y+p.h/2+16,'ストアを開いています…','#ffffff');
+  spawn('appban',p.x+24,p.y+18); spawn('appban',p.x-24,p.y+38);
+  sync();
+}
+function nestHit(p,px,py){
+  p.hp--;
+  G.score+=Math.round(90*mult()); addCharge(2.5);
+  burst(px,py,'#16a34a',8); sfxHeavy();
+  if(p.hp>0){
+    const names=p.nestNames||['詳細設定','詳細設定','個別の同意管理'];
+    const h=p.el.querySelector('.nh');
+    if(h) h.textContent=names[Math.min(names.length-1,3-p.hp)];
+    p.el.insertAdjacentHTML('beforeend','<div class="tog off"><span>ベンダー '+(p.hp*281)+' 社の設定</span><i></i></div>');
+    p.h=p.el.offsetHeight;
+    floatText(px,py-12,'さらに詳細設定が開いた','#ffd400');
+    sync(); return;
+  }
+  kill(p,340,'設定を閉じた');
+}
+function killChat(p){
+  const again=(p.respawn||0)<2, n=(p.respawn||0)+1;
+  kill(p,170,again?null:'完全に閉じた');
+  if(again) setTimeout(()=>{
+    if(!G.running||G.over||G.clearing||G.paused) return;
+    const q=spawn('chat');
+    if(q){ q.respawn=n; floatText(q.x+q.w/2,q.y-4,'また出てきた','#ffd400'); }
+  },3800);
+}
+function detonate(p){
+  const cx=p.x+p.w/2, cy=p.y+p.h/2;
+  G.combo++; G.maxCombo=Math.max(G.maxCombo,G.combo);
+  G.score+=Math.round(500*mult());
+  floatText(cx,cy-6,'ADBLOCK 実行','#80ffff',true);
+  burst(cx,cy,'#80ffff',26); sfxBlock(); shake(11); remove(p,true);
+  G.pops.slice().forEach((q,i)=>{
+    if(q.kind==='boss'||q.kind==='bboss') return;
+    setTimeout(()=>{ if(G.pops.indexOf(q)<0)return;
+      G.score+=60; burst(q.x+q.w/2,q.y+q.h/2,'#ffffff',8); remove(q,true); countKill(); sync(); },60+i*55);
+  });
+  sync();
+}
+function bossHit(p,px,py){
+  p.hp--;
+  const done=p.hpMax-p.hp, pct=Math.round(done/p.hpMax*100);
+  if(p.hpFill) p.hpFill.style.width=pct+'%';
+  if(p.hpNum) p.hpNum.textContent=pct+'%';
+  if(p.rem) p.rem.textContent = p.kind==='bboss' ? ('強制終了まで あと '+p.hp)
+    : p.kind==='vendors' ? ('残り '+(p.hp*60)+' 社')
+    : ('あと '+p.hp+' 回');
+  burst(px,py,'#ff4040',9); shake(7); sfxBossHit();
+  G.score+=Math.round((p.kind==='bboss'?70:60)*mult()); addCharge(2);
+  if(p.kind==='boss'){
+    const range=Math.max(0,p.w-86);
+    p.xoff=-Math.random()*range;
+    p.xbtn.style.transform='translateX('+p.xoff.toFixed(1)+'px)';
+  } else if(p.kind==='bboss'){ p.corner=(p.corner+1+((Math.random()*3)|0))%4; p.cornerT=1.1; placeBossX(p); }
+  else if(p.kind==='vendors'){ p.vpos=110+Math.random()*66; p.xbtn.style.top=p.vpos.toFixed(0)+'px'; }
+  if(!p.anchor){
+    const sp=(p.kind==='bboss'?58:26)+(1-p.hp/p.hpMax)*(p.kind==='bboss'?52:46);
+    const a=Math.atan2(p.vy,p.vx)+(Math.random()-.5)*1.2;
+    p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp;
+  }
+  if(p.hp<=0) bossDie(p); else sync();
+}
+function bossDie(p){
+  const cx=p.x+p.w/2, cy=p.y+p.h/2;
+  G.combo++; G.maxCombo=Math.max(G.maxCombo,G.combo);
+  const gain=Math.round((1500+G.bossNo*500)*mult()); G.score+=gain;
+  sfxBossDie(); shake(26); redFlash();
+  burst(cx,cy,'#ffffff',40); burst(cx,cy,'#ff8000',26);
+  floatText(cx,cy-10,'+'+gain,'#ffff80',true);
+  banner('THREAT ELIMINATED');
+  remove(p,true); countKill();
+  G.cpu=Math.max(3,G.cpu-42);
+  G.pops.slice().forEach((q,i)=>setTimeout(()=>{
+    if(G.pops.indexOf(q)<0)return;
+    G.score+=60;burst(q.x+q.w/2,q.y+q.h/2,'#ffffff',7);remove(q,true);countKill();sync();},80+i*50));
+  G.bossNo++; G.sboss++; sync();
+}
+function summonBoss(){
+  sfxAlarm(); redFlash(); shake(14);
+  const txt={1:'WARNING!! WARNING!!',2:'最強バナー 襲来',3:'スキップ できません',4:'ベンダー 842社'}[G.stage];
+  banner(txt,true);
+  setTimeout(()=>{ if(G.running&&!G.over&&!G.clearing) spawn(BOSSKIND[G.stage]); },900);
+}
+function nextWave(){
+  G.wave++; sfxWave(); banner('WAVE '+G.wave+' / '+LAST_WAVE);
+  if(G.wave%3===0&&!G.boss) setTimeout(summonBoss,900);
+}
+function shake(n){ if(!REDUCED) G.shake=Math.max(G.shake,n); }
+
+/* ---------- input ---------- */
+desk.addEventListener('pointerdown',e=>{
+  if(G.menuOpen) closeMenu();
+  if(!G.running||G.paused||G.over) return;
+  ac();
+  const r=desk.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+  cross.classList.remove('fire'); void cross.offsetWidth; cross.classList.add('fire');
+
+  const fb=e.target.closest('.tbtn.xf');
+  if(fb){ const p=G.pops.find(q=>q.fakeBtn===fb); if(p){ e.preventDefault(); fakeHit(p,px,py); } return; }
+
+  const xb=e.target.closest('.tbtn.x');
+  if(xb){
+    const p=G.pops.find(q=>q.xbtn===xb); if(!p) return;
+    e.preventDefault();
+    if(p.locked){ sfxDud(); floatText(px,py-12,'まだ閉じられません','#ffd400'); return; }
+    switch(p.kind){
+      case 'boss': case 'bboss': case 'vendors': bossHit(p,px,py); return;
+      case 'vboss': bossDie(p); return;
+      case 'blocker': detonate(p); return;
+      case 'nest': nestHit(p,px,py); return;
+      case 'chat': killChat(p); return;
+      case 'heavy':
+        p.hp--;
+        if(p.hp>0){
+          if(p.pipEls[p.hp]) p.pipEls[p.hp].classList.add('off');
+          if(p.hpFill) p.hpFill.style.width=(46+(3-p.hp)*18)+'%';
+          G.score+=Math.round(80*mult()); addCharge(2.5); burst(px,py,'#80ff80',7); sfxHeavy();
+          floatText(px,py-10,'HIT'); sync(); return;
+        }
+        kill(p,280,'強制終了'); return;
+      case 'slippery': kill(p,240,'華麗'); return;
+      case 'menu':     kill(p,180+(p.level-1)*60,'メニュー撃破'); return;
+      case 'drop':     kill(p,260,'プルダウン撃破'); return;
+      case 'inter':    kill(p,420,'全画面広告撃破'); return;
+      case 'ban':      kill(p,120,null); return;
+      case 'video':    kill(p,400,'動画スキップ'); return;
+      case 'fakex':    kill(p,270,'本物の ✕'); return;
+      case 'notif':    kill(p,210,'通知撃墜'); return;
+      case 'appban':   kill(p,130,null); return;
+      case 'cookie':   kill(p,220,'拒否'); return;
+      case 'guilt':    kill(p,200,null); return;
+      default:         kill(p,100,null); return;
+    }
+  }
+  if(e.target.closest('.tbtn')){ sfxDud(); e.preventDefault(); return; }
+  const body=e.target.closest('.pop');
+  if(body){ const p=G.pops.find(q=>q.el===body); if(p){ e.preventDefault(); misclick(p,px,py); } return; }
+  sfxDud();
+});
+desk.addEventListener('pointermove',e=>{
+  const r=desk.getBoundingClientRect();
+  G.mx=e.clientX-r.left; G.my=e.clientY-r.top;
+  if(e.pointerType==='mouse'){ cross.classList.add('on'); cross.style.left=G.mx+'px'; cross.style.top=G.my+'px'; }
+  else cross.classList.remove('on');
+});
+desk.addEventListener('pointerleave',()=>{cross.classList.remove('on');G.mx=-999;G.my=-999;});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&G.running&&!G.over&&!G.paused)setPause(true);});
+
+function openMenu(){G.menuOpen=true;startMenu.hidden=false;startBtn.classList.add('open');startBtn.setAttribute('aria-expanded','true');sfxDud();}
+function closeMenu(){G.menuOpen=false;startMenu.hidden=true;startBtn.classList.remove('open');startBtn.setAttribute('aria-expanded','false');}
+startBtn.addEventListener('click',e=>{e.stopPropagation();G.menuOpen?closeMenu():openMenu();});
+document.addEventListener('click',e=>{if(G.menuOpen&&!startMenu.contains(e.target)&&e.target!==startBtn)closeMenu();});
+startMenu.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]'); if(!b) return;
+  const a=b.dataset.act; closeMenu();
+  if(a==='new') newGame();
+  else if(a==='pause'){ if(G.running&&!G.over&&!G.clearing) setPause(!G.paused); }
+  else if(a==='help') showHelp();
+  else if(a==='quit') endToTitle();
+});
+
+/* ---------- loop ---------- */
+function loop(ts){
+  requestAnimationFrame(loop);
+  const dt=Math.min(.05,(ts-G.last)/1000||0); G.last=ts;
+  if(G.running&&!G.paused&&!G.over){
+    G.elapsed+=dt; G.blockCd-=dt;
+    const bossAlive=!!G.boss;
+    if(!G.clearing){
+      G.spawnIn-=dt*1000*(bossAlive?.5:1);
+      if(G.spawnIn<=0){
+        const base=Math.max(680,(G.stage===1?2500:G.stage===2?2200:G.stage===3?2100:2000)-(G.wave-1)*165);
+        G.spawnIn=base*(.78+Math.random()*.44);
+        spawn(null);
+      }
+      if(bossAlive){
+        G.bossTimer-=dt;
+        if(G.bossTimer<=0){
+          G.bossTimer=G.stage===1?2.6:G.stage===2?3.0:G.stage===3?2.2:2.6;
+          spawn(basicKind(),G.boss.x+G.boss.w/2-60,G.boss.y+G.boss.h/2);
+        }
+      }
+    }
+    const jitter=G.cpu>=90?2.4:0;
+    for(let i=G.pops.length-1;i>=0;i--){
+      const p=G.pops[i];
+      if(p.scale<1) p.scale=Math.min(1,p.scale+dt*4.2);
+      if(p.anchor){
+        if(p.kind==='drop'&&p.slide<1) p.slide=Math.min(1,p.slide+dt*1.5);
+        if(p.kind==='notif'){
+          if(p.leaving){
+            p.slide=Math.max(0,p.slide-dt*3);
+            if(p.slide<=0){ escapeNotif(p); continue; }
+          } else p.slide=Math.min(1,p.slide+dt*3.4);
+        }
+        anchorPos(p);
+      } else {
+        p.x+=p.vx*dt; p.y+=p.vy*dt;
+        if(p.x<G.left){p.x=G.left;p.vx=Math.abs(p.vx);}
+        if(p.x>G.right-p.w){p.x=G.right-p.w;p.vx=-Math.abs(p.vx);}
+        if(p.y<G.top){p.y=G.top;p.vy=Math.abs(p.vy);}
+        if(p.y>G.bot-p.h){p.y=G.bot-p.h;p.vy=-Math.abs(p.vy);}
+      }
+      applyTransform(p, jitter?(Math.random()-.5)*jitter:0, jitter?(Math.random()-.5)*jitter:0);
+      if(p.kind==='slippery'){
+        const cxb=p.x+p.w-20+p.xoff, cyb=p.y+12;
+        const near=Math.hypot(G.mx-cxb,G.my-cyb)<130;
+        p.phase+=dt*(near?4.6:2.2);
+        const range=Math.max(0,p.w-78);
+        p.xoff=-range*(.5+.5*Math.sin(p.phase));
+        p.xbtn.style.transform='translateX('+p.xoff.toFixed(1)+'px)';
+      }
+      if(p.kind==='bboss'){
+        p.cornerT-=dt;
+        if(p.cornerT<=0){ p.cornerT=1.15; p.corner=(p.corner+1)%4; placeBossX(p); }
+      }
+      if(p.locked){
+        p.cd-=dt;
+        const n=Math.max(0,Math.ceil(p.cd));
+        if(p.xbtn&&p.xbtn.textContent!==String(n)) p.xbtn.textContent=String(n);
+        if(p.cdn&&p.cdn.textContent!==String(n)) p.cdn.textContent=n;
+        if(p.hpFill) p.hpFill.style.width=Math.max(0,Math.min(100,(1-p.cd/p.cd0)*100))+'%';
+        if(p.cd<=0){
+          p.locked=false;
+          p.xbtn.classList.remove('locked'); p.xbtn.classList.add('revealed');
+          p.xbtn.textContent='✕';
+          sfxCharged();
+          floatText(p.x+p.w-14,p.y+6,'✕ が出た','#ffd400');
+        }
+      }
+      if(p.kind==='vendors'){
+        p.vpos-=dt*46;
+        if(p.vpos<-16) p.vpos=176;
+        p.xbtn.style.top=p.vpos.toFixed(0)+'px';
+      }
+      if(!NOSPLIT[p.kind]&&!BOSSSET[p.kind]&&!G.clearing){
+        p.ttl-=dt;
+        if(p.ttl<(p.kind==='notif'?1.0:2.1)&&!p.urgent){p.urgent=true;p.el.classList.add('urgent');}
+        if(p.ttl<=0){ if(p.kind==='notif'){ p.leaving=true; } else grow(p); }
+      }
+    }
+    let target=2; G.pops.forEach(p=>target+=loadOf(p));
+    if(G.clearing) target=2;
+    const rate=target>G.cpu?.85:1.5;
+    G.cpu+=(target-G.cpu)*Math.min(1,dt*rate);
+    if(G.cpu>=100&&!G.clearing){G.cpu=100;gameOver();}
+    G.histT-=dt;
+    if(G.histT<=0){G.histT=.18;G.hist.push(G.cpu);if(G.hist.length>44)G.hist.shift();drawHist();}
+    desk.classList.toggle('busy',G.cpu>=90);
+    taskbar.classList.toggle('alarm',G.cpu>=90||!!G.boss);
+    sync();
+  }
+  if(G.shake>.2){
+    G.shake*=.86;
+    field.style.transform='translate('+((Math.random()-.5)*G.shake).toFixed(1)+'px,'+((Math.random()-.5)*G.shake).toFixed(1)+'px)';
+  } else if(field.style.transform){field.style.transform='';G.shake=0;}
+  drawFx(dt);
+}
+
+/* ---------- ui ---------- */
+const SEG_N=10, BSEG_N=8;
+for(let i=0;i<SEG_N;i++) segs.appendChild(document.createElement('i'));
+for(let i=0;i<BSEG_N;i++) bsegs.appendChild(document.createElement('i'));
+const segEls=[...segs.children], bsegEls=[...bsegs.children], bombEls=[...bombsEl.children];
+function sync(){
+  elStage.textContent=G.stage+'-'+G.wave;
+  elScore.textContent=G.score.toLocaleString('en-US');
+  elCombo.textContent=G.combo+(G.combo>=5?' ×'+mult().toFixed(1):'');
+  const [rt,rc]=rankOf(G.combo); elRank.textContent=rt; elRank.style.color=rc;
+  const cpu=Math.round(G.cpu);
+  elCpu.textContent=cpu+'%'; cpuItem.classList.toggle('hi',cpu>=80);
+  const on=Math.round(G.cpu/100*SEG_N);
+  segEls.forEach((s,i)=>{s.style.background=i<on?(i>=8?'#a80000':i>=6?'#a8a800':'#00a800'):'#9a9a9a';});
+  const bon=Math.round(G.charge/100*BSEG_N);
+  bsegEls.forEach((s,i)=>{s.style.background=i<bon?(G.bombs>=BOMB_MAX?'#00a8a8':'#0000c0'):'#9a9a9a';});
+  bombEls.forEach((b,i)=>b.classList.toggle('on',i<G.bombs));
+  const ready=G.bombs>0&&G.running&&!G.over;
+  bombBtn.disabled=!ready; bombBtn.classList.toggle('ready',ready);
+  bombBtn.textContent=ready?'FIRE':'CHARGE';
+  G.pops.forEach(p=>{ if(p.task){const t=p.title+(G.cpu>=90?' (応答なし)':''); if(p.task.textContent!==t)p.task.textContent=t;} });
+}
+function tick(){const d=new Date();elClock.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0');}
+setInterval(tick,10000); tick();
+
+/* ---------- screens ---------- */
+function dialog(title,html){
+  dlgTitle.textContent=title; dlgBody.innerHTML=html;
+  overlay.hidden=false; desk.classList.remove('live');
+}
+function showTitle(){
+  dialog('ポップアップ狩り へようこそ',
+    '<div class="row">'+ICO.info+'<div><h2>✕ だけを撃て。</h2>'+
+    '<p>湧き出す広告を、閉じるボタンだけを狙って撃ち落とすシューティング。1995年のデスクトップから2025年のWebまで、4ステージを撃ち抜きます。</p></div></div>'+
+    '<div class="tips"><div class="h">今日のヒント</div><ul>'+
+      '<li><em class="g">✕</em><span><b>✕</b> をクリックすると撃墜。連続で決めるとコンボ倍率が上がります。</span></li>'+
+      '<li><em class="r">!</em><span>本文や [OK] をクリックすると <b>誤クリック</b>。−50点、コンボ全損、しかも1つ増えます。</span></li>'+
+      '<li><em class="y">▲</em><span>放置した窓は <b>増殖・拡張</b>。窓が増えるほど <b>CPU 使用率</b> が上がり、100% でフリーズします。</span></li>'+
+      '<li><em class="b">B</em><span>撃墜で溜まる <b>ボム</b> は <b>スペースキー</b> か <b>FIRE</b> ボタンで発射。全ウィンドウの ✕ が自動で押されます。</span></li>'+
+      '<li><em class="g">▶</em><span>各ステージ <b>WAVE '+LAST_WAVE+'</b> を耐え抜けばステージクリア。</span></li>'+
+    '</ul></div>'+
+    '<div class="legend">'+
+      '<div><b>STAGE 1</b>1995 · デスクトップ — Windows のダイアログ広告</div>'+
+      '<div><b>STAGE 2</b>2005 · ブラウザ — 生えるアフィリエイト広告</div>'+
+      '<div><b>STAGE 3</b>2015 · スマートフォン — アプリ内広告と偽の ✕</div>'+
+      '<div><b>STAGE 4</b>2025 · モダンサイト — 拒否させないダークパターン</div>'+
+      '<div><b class="boss">BOSS</b>3 WAVE ごとに出現。連打で強制終了</div>'+
+      '<div><b class="bomb">ボム</b>閃光とともに全ウィンドウの ✕ が押される</div>'+
+    '</div>'+
+    '<div class="dlgbtns"><button class="big95" id="goBtn" type="button">ゲーム開始</button></div>'+
+    '<div class="chk"><i>✓</i><span>起動時にこのヒントを表示する</span></div>'+
+    (G.best>0?'<div class="best">BEST '+G.best.toLocaleString('en-US')+'</div>':''));
+  $('#goBtn').addEventListener('click',newGame);
+  $('#goBtn').focus();
+}
+function showHelp(){
+  if(G.running&&!G.paused&&!G.over&&!G.clearing) setPause(true);
+  dialog('ヘルプ',
+    '<div class="row">'+ICO.ques+'<div><h2>操作方法</h2>'+
+    '<p>マウスまたはタップで、ウィンドウの <b>✕</b> を狙ってください。それ以外の場所は罠です。</p></div></div>'+
+    '<div class="tips"><ul>'+
+    '<li><em class="g">✕</em><span>閉じるボタン = 唯一の当たり判定</span></li>'+
+    '<li><em class="g">_□</em><span>最小化・最大化ボタンは無害（点も入りません）</span></li>'+
+    '<li><em class="r">!</em><span>本文・[OK]・[キャンセル] は誤クリック扱い</span></li>'+
+    '<li><em class="y">▲</em><span>CPU 使用率は開いている窓の数と種類で決まります</span></li>'+
+    '<li><em class="b">B</em><span>ボム = スペースキー / B キー / トレイの FIRE ボタン</span></li>'+
+    '<li><em class="b">◆</em><span>コンボが高いほどゲージの溜まりが速い。誤クリックでゲージ半減</span></li>'+
+    '</ul></div>'+
+    '<div class="dlgbtns"><button class="big95" id="okBtn" type="button">OK</button></div>');
+  $('#okBtn').addEventListener('click',()=>{ if(G.running&&!G.over) setPause(false); else showTitle(); });
+  $('#okBtn').focus();
+}
+function setPause(v){
+  if(!G.running||G.over) return;
+  G.paused=v;
+  if(v){
+    dialog('一時停止','<div class="row">'+ICO.info+'<div><h2>一時停止中</h2>'+
+      '<p>ポップアップは待っていてくれます。あなたの都合には合わせませんが。</p></div></div>'+
+      '<div class="dlgbtns"><button class="big95" id="resBtn" type="button">再開</button></div>');
+    $('#resBtn').addEventListener('click',()=>setPause(false)); $('#resBtn').focus();
+  } else { overlay.hidden=true; desk.classList.add('live'); }
+}
+
+/* ---------- stage flow ---------- */
+function clearField(){ G.pops.slice().forEach(p=>remove(p,false)); tasks.innerHTML=''; }
+function beginStage(n){
+  G.stage=n; G.wave=1; G.waveKills=0; G.clearing=false; G.pendingClear=false;
+  G.cpu=3; G.hist.length=0; G.boss=null; G.sboss=0; G.bossTimer=n===1?2.6:3.0;
+  G.spawnIn=500; G.blockCd=16; G.combo=0;
+  clearField(); parts.length=0;
+  browser.hidden=(n!==2); phone.hidden=(n!==3); modern.hidden=(n!==4);
+  updateArea();
+  if(n===2) addStaticTask('ポップ ポータル - よろずリンク集');
+  if(n===3) addStaticTask('パズル de 神引き');
+  if(n===4) addStaticTask('Flowly — なめらかな一日を');
+  G.running=true; G.paused=false; G.over=false;
+  overlay.hidden=true; bsod.hidden=true;
+  desk.classList.add('live'); desk.classList.remove('busy'); taskbar.classList.remove('alarm');
+  drawHist(); sync(); spawn(null);
+}
+function newGame(){
+  ac(); sfxDing();
+  Object.assign(G,{score:0,combo:0,maxCombo:0,kills:0,elapsed:0,shake:0,bossNo:0,
+    charge:0,bombs:0,bombsUsed:0,best:G.best});
+  beginStage(1);
+}
+function stageClear(){
+  if(G.clearing||G.over) return;
+  G.clearing=true; G.pendingClear=false;
+  banner('STAGE '+G.stage+' CLEAR'); sfxClear(); whiteFlash();
+  const list=G.pops.slice();
+  list.forEach((p,i)=>setTimeout(()=>{
+    if(G.pops.indexOf(p)<0) return;
+    if(p.xbtn) p.xbtn.classList.add('pressed');
+    burst(p.x+p.w/2,p.y+p.h/2,'#ffffff',10); sfxClick();
+    G.score+=50; remove(p,true); sync();
+  },240+i*90));
+  setTimeout(()=>{ G.running=false; desk.classList.remove('live','busy'); taskbar.classList.remove('alarm');
+    cross.classList.remove('on'); showStageClear(); },700+list.length*90);
+}
+function showStageClear(){
+  const cpuB=Math.round(Math.max(0,100-G.cpu)*20);
+  const bombB=G.bombs*500;
+  const clearB=2000*G.stage;
+  const before=G.score;
+  G.score+=cpuB+bombB+clearB;
+  if(G.score>G.best){G.best=G.score;saveBest();}
+  sync();
+  const last=G.stage>=LAST_STAGE;
+  dialog('ステージ クリア',
+    '<div class="row">'+ICO.info+'<div><h2>STAGE '+G.stage+' クリア</h2>'+
+    '<p>'+(last?'すべてのポップアップを退けました。インターネットに平和が戻ります。'
+                :STAGE_OUTRO[G.stage])+'</p></div></div>'+
+    '<div class="scoretab">'+
+      '<span>ステージ終了時スコア</span><span>'+before.toLocaleString('en-US')+'</span>'+
+      '<span>クリアボーナス</span><span>+'+clearB.toLocaleString('en-US')+'</span>'+
+      '<span>CPU 余裕ボーナス（'+Math.round(100-G.cpu)+'% × 20）</span><span>+'+cpuB.toLocaleString('en-US')+'</span>'+
+      '<span>ボム温存ボーナス（'+G.bombs+' × 500）</span><span>+'+bombB.toLocaleString('en-US')+'</span>'+
+      '<span class="tot">合計</span><span class="tot">'+G.score.toLocaleString('en-US')+'</span>'+
+    '</div>'+
+    '<div class="dlgbtns"><button class="big95" id="nextBtn" type="button">'+(last?'エンディングへ':'STAGE '+(G.stage+1)+' へ')+'</button></div>');
+  $('#nextBtn').addEventListener('click',()=>{ last?showEnding():stageIntro(G.stage+1); });
+  $('#nextBtn').focus();
+}
+const STAGE_OUTRO={
+ 1:'デスクトップを守りきりました。しかし敵は次の場所に湧いています。',
+ 2:'ブラウザを閉じました。広告は次の画面へ移動したようです。',
+ 3:'アプリをアンインストールしました。ですが、話はここで終わりません。'
+};
+function stageIntro(n){
+  if(n===2) return showStage2Intro();
+  if(n===3) return showStage3Intro();
+  return showStage4Intro();
+}
+function showStage2Intro(){
+  dialog('ダイヤルアップ接続',
+    '<div class="row">'+ICO.globe+'<div><h2>STAGE 2 — インターネット</h2>'+
+    '<p>ブラウザを起動しました。ここからの敵は <b>ページの中に生えてくる</b> 広告です。'+
+    'ウィンドウではないので閉じるボタンは小さく、場所もバラバラです。</p></div></div>'+
+    '<div class="legend">'+
+      '<div><b>延長メニュー</b>放置するたびに階層が増え、右へ右へと伸びていく</div>'+
+      '<div><b>プルダウン広告</b>画面上部から降りてくる。放置すると段が増える</div>'+
+      '<div><b>全画面広告</b>突然最前面に出現。ページを暗転させ CPU を大喰らい</div>'+
+      '<div><b>アフィバナー</b>虹色に光る定番の小型バナー</div>'+
+      '<div><b class="boss">BOSS</b>✕ がビカビカ光る極小バナー。四隅を飛び回る</div>'+
+    '</div>'+
+    '<div class="dlgbtns"><button class="big95" id="connBtn" type="button">接続する</button></div>');
+  $('#connBtn').addEventListener('click',()=>{sfxDial();setTimeout(()=>beginStage(2),600);});
+  $('#connBtn').focus();
+}
+function showStage3Intro(){
+  dialog('アプリを起動しています',
+    '<div class="row">'+ICO.warn+'<div><h2>STAGE 3 — スマートフォン</h2>'+
+    '<p>画面が <b>縦</b> になります。無料ゲームアプリの中は、ウィンドウの枠すらない広告の世界。'+
+    '<b>閉じるボタンが出るまで待たされる</b> ものもあります。</p></div></div>'+
+    '<div class="legend">'+
+      '<div><b>リワード動画</b>✕ は数秒後にしか出ない。出るまで他を捌くこと</div>'+
+      '<div><b>偽の ✕</b>✕ が2つ。<b>本物は角にぴったり</b>、偽物は少し内側にずれている</div>'+
+      '<div><b>通知バナー</b>上から降りて数秒で引っ込む。逃がすと 2つに増える</div>'+
+      '<div><b>アプリ広告</b>インストールを迫る定番カード</div>'+
+      '<div><b class="boss">BOSS</b>スキップ不可の30秒広告。雑魚を倒すたび残り時間が減る</div>'+
+    '</div>'+
+    '<div class="dlgbtns"><button class="big95" id="appBtn" type="button">アプリを開く</button></div>');
+  $('#appBtn').addEventListener('click',()=>{sfxDing();setTimeout(()=>beginStage(3),320);});
+  $('#appBtn').focus();
+}
+function showStage4Intro(){
+  dialog('最後のサイト',
+    '<div class="row">'+ICO.info+'<div><h2>STAGE 4 — 2020年代</h2>'+
+    '<p>広告は行儀よくなりました。<b>見た目だけは</b>。'+
+    'きれいなサイトの上で、拒否させないためのボタン設計と戦います。</p></div></div>'+
+    '<div class="legend">'+
+      '<div><b>Cookie 同意</b>「すべて同意」は巨大。狙うのは極小の <b>拒否</b> リンク</div>'+
+      '<div><b>設定ダイアログ</b>閉じるたびに <b>さらに深い設定</b> が開く。3階層</div>'+
+      '<div><b>購読モーダル</b>「いいえ、私は損をし続けます」型。本文は罠</div>'+
+      '<div><b>チャット</b>右下に居座り、閉じても <b>2回まで</b> 戻ってくる</div>'+
+      '<div><b class="boss">BOSS</b>ベンダーリスト842社。流れる行に乗った「拒否する」を撃つ</div>'+
+    '</div>'+
+    '<div class="dlgbtns"><button class="big95" id="modBtn" type="button">同意せずに進む</button></div>');
+  $('#modBtn').addEventListener('click',()=>{sfxDing();setTimeout(()=>beginStage(4),320);});
+  $('#modBtn').focus();
+}
+function verdict(s){
+  if(s>=45000) return ['広告免疫系','ポップアップはあなたの前では無力です。'];
+  if(s>=25000) return ['凄腕クリッカー','✕ の位置を体が覚えている動き。'];
+  if(s>=12000) return ['熟練ユーザー','無料 Wi-Fi くらいなら生き延びられます。'];
+  if(s>=4000)  return ['一般的な被害者','たぶん一度は「今すぐ最適化」を押している。'];
+  return ['要・リテラシー研修','まず本文をクリックしない訓練から。'];
+}
+function statRow(){
+  const s=Math.floor(G.elapsed), mm=Math.floor(s/60), ss=String(s%60).padStart(2,'0');
+  return '<div class="stats">'+
+    '<div><span>SCORE </span>'+G.score.toLocaleString('en-US')+'</div>'+
+    '<div><span>撃墜 </span>'+G.kills+'</div>'+
+    '<div><span>最大コンボ </span>'+G.maxCombo+'</div>'+
+    '<div><span>到達 </span>STAGE '+G.stage+'-'+G.wave+'</div>'+
+    '<div><span>生存 </span>'+mm+':'+ss+'</div>'+
+    '<div><span>ボス撃破 </span>'+G.bossNo+'</div>'+
+    '<div><span>ボム使用 </span>'+G.bombsUsed+'</div>'+
+  '</div>';
+}
+function endToTitle(){
+  G.running=false;G.over=false;G.paused=false;G.clearing=false;
+  clearField(); browser.hidden=true; phone.hidden=true; modern.hidden=true; G.stage=1; updateArea();
+  G.cpu=3;G.charge=0;G.bombs=0;G.hist.length=0;drawHist();sync();
+  bsod.hidden=true; bsod.className='bsod'; showTitle();
+}
+function gameOver(){
+  if(G.over) return;
+  G.over=true; G.running=false;
+  sfxOver(); shake(24);
+  G.pops.forEach((p,i)=>setTimeout(()=>burst(p.x+p.w/2,p.y+p.h/2,'#ffffff',8),i*40));
+  const isBest=G.score>G.best; if(isBest){G.best=G.score;saveBest();}
+  const [vt,vd]=verdict(G.score);
+  setTimeout(()=>{
+    clearField(); desk.classList.remove('live','busy'); taskbar.classList.remove('alarm');
+    cross.classList.remove('on'); overlay.hidden=true; sync();
+    bsod.className='bsod';
+    bsod.innerHTML='<div class="hd">ポップアップ狩り</div>'+
+      '<p>致命的な例外 0E が 0028:C001E36 の VXD POPUP(01) + 00010E36 で発生しました。<br>'+
+      'CPU 使用率が 100% に達し、システムは応答を停止しました。</p>'+
+      statRow()+
+      '<p class="verdict">判定: '+vt+' — '+vd+'</p>'+
+      '<p>'+(isBest?'★ 自己ベスト更新 ':'ベスト ')+G.best.toLocaleString('en-US')+'</p>'+
+      '<p class="cursor">続行するには 再起動 を押してください</p>'+
+      '<button class="go" id="rebootBtn" type="button">再 起 動</button>';
+    bsod.hidden=false;
+    $('#rebootBtn').addEventListener('click',()=>{bsod.hidden=true;newGame();});
+    $('#rebootBtn').focus();
+  },620);
+}
+function showEnding(){
+  const [vt,vd]=verdict(G.score);
+  if(G.score>G.best){G.best=G.score;saveBest();}
+  clearField(); browser.hidden=true; phone.hidden=true; modern.hidden=true; updateArea();
+  overlay.hidden=true; desk.classList.remove('live','busy'); taskbar.classList.remove('alarm');
+  cross.classList.remove('on'); sync();
+  bsod.className='bsod shut';
+  bsod.innerHTML='<div class="hd">ALL CLEAR</div>'+
+    '<p>すべてのポップアップは閉じられました。<br>コンピュータの電源を切る準備ができました。</p>'+
+    statRow()+
+    '<p class="verdict">判定: '+vt+' — '+vd+'</p>'+
+    '<p>BEST '+G.best.toLocaleString('en-US')+'</p>'+
+    '<button class="go" id="againBtn" type="button">も う 一 度</button>';
+  bsod.hidden=false;
+  $('#againBtn').addEventListener('click',()=>{bsod.hidden=true;bsod.className='bsod';newGame();});
+  $('#againBtn').focus();
+}
+
+/* ---------- boot ---------- */
+function boot(data){
+  DESK_ICONS.forEach(([label,svg],i)=>{
+    const d=document.createElement('div');
+    d.className='dicon'+(i===0?' sel':'');
+    d.innerHTML=svg+'<span>'+label+'</span>';
+    $('#dicons').appendChild(d);
+  });
+  const GEMC=['#ff5c7a','#ffc23d','#4ade80','#38bdf8','#a78bfa','#fb923c'];
+  let gs='';
+  for(let i=0;i<42;i++) gs+='<i style="background:'+GEMC[(Math.random()*GEMC.length)|0]+'"></i>';
+  $('#gems').innerHTML=gs;
+  loadBest();
+  if(data&&typeof data.best==='number'&&data.best>G.best){G.best=data.best;saveBest();}
+  sizeCanvas(); updateArea(); drawHist(); sync(); showTitle();
+  G.last=performance.now(); requestAnimationFrame(loop);
+}
+try{ window.claude&&window.claude.hot&&window.claude.hot.snapshot&&window.claude.hot.snapshot(()=>({best:G.best})); }catch(e){}
+if(window.claude&&window.claude.hot&&window.claude.hot.ready) window.claude.hot.ready(boot);
+else boot((window.claude&&window.claude.hot&&window.claude.hot.data)||{});
+})();
+</script>
+</body>
+</html>
