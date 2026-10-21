@@ -1,0 +1,528 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>WINNING RUN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Rubik+Mono+One&display=swap">
+<style>
+/* Layout: one game screen (canvas) over a pad of direction buttons that changes per stage. Single bright pop look that rots as the stages go on. */
+:root {
+  --sky: #7fd3ff;
+  --sun: #ffe14d;
+  --pop: #ff4f9a;
+  --ink: #1d1a3a;
+  --paper: #fffaf0;
+  --mute: #6b6894;
+  --f-display: "Rubik Mono One", "Arial Black", Impact, sans-serif;
+  --f-body: "DotGothic16", "Hiragino Kaku Gothic ProN", "Yu Gothic", monospace;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--f-body);
+  padding-inline: 16px;
+  padding-block: 16px;
+  box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center;
+}
+.wrap { width: 100%; max-width: 980px; display: flex; flex-direction: column; gap: 12px; }
+.stage {
+  position: relative; width: 100%; max-width: 100%;
+  aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden;
+  box-shadow: 0 0 0 4px var(--sun), 0 12px 40px rgba(0,0,0,.5);
+  touch-action: manipulation; cursor: pointer;
+}
+canvas { display: block; width: 100%; height: 100%; }
+.pad { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; min-height: 64px; }
+.pad button {
+  font: inherit; color: var(--ink); background: var(--paper);
+  border: 0; border-radius: 6px; padding: 8px 4px 6px; cursor: pointer;
+  box-shadow: 0 4px 0 var(--mute); touch-action: manipulation;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.pad button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--mute); }
+.pad button:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.pad .dir { font-size: 20px; line-height: 1.2; overflow-wrap: anywhere; }
+.pad kbd { font: inherit; font-size: 11px; color: var(--mute); }
+.help { color: var(--mute); font-size: 13px; line-height: 1.7; margin: 0; }
+</style>
+
+<div class="wrap">
+  <div class="stage" id="stage"><canvas id="c" width="960" height="540"></canvas></div>
+  <div class="pad" id="pad" aria-label="Directions"></div>
+  <p class="help" id="help">Go where you are told. Never go the other way. Keyboard works too (keys are on the buttons).</p>
+</div>
+
+<script>
+(() => {
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 960, H = 540;
+const pad = document.getElementById('pad');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const JUNK = 'Ã¢â‚¬â„¢œ€žÌÍï¼Ÿ\uFFFD';
+
+// ---------- directions: axis index, sign, key ----------
+const DIRS = {
+  N: { ch: 'NORTH', axis: 0, sign: 1,  code: 'ArrowUp',    key: '↑' },
+  S: { ch: 'SOUTH', axis: 0, sign: -1, code: 'ArrowDown',  key: '↓' },
+  E: { ch: 'EAST', axis: 1, sign: 1,  code: 'ArrowRight', key: '→' },
+  W: { ch: 'WEST', axis: 1, sign: -1, code: 'ArrowLeft',  key: '←' },
+  U: { ch: 'UP', axis: 2, sign: 1,  code: 'KeyW',       key: 'W' },
+  D: { ch: 'DOWN', axis: 2, sign: -1, code: 'KeyS',       key: 'S' },
+  G: { ch: 'ＭＥ？ＯＳ', axis: 3, sign: 1,  code: 'KeyD',       key: 'D' },
+  X: { ch: '？ＡＥＩＹＳ', axis: 3, sign: -1, code: 'KeyA',       key: 'A' },
+  R: { ch: 'Ã¢â‚¬â„¢', axis: 4, sign: 1,  code: 'KeyE',       key: 'E' },
+  M: { ch: 'â€”', axis: 4, sign: -1, code: 'KeyQ',       key: 'Q' },
+  K: { ch: 'ÌÌÌÌ', axis: 5, sign: 1,  code: 'KeyC',       key: 'C' },
+  T: { ch: 'ÍÍÍÍ', axis: 5, sign: -1, code: 'KeyZ',       key: 'Z' },
+};
+
+const STAGES = [
+  { name: 'STAGE 1', space: 'A straight line where you can go north and south',
+    dirs: ['N', 'S'], target: [1], view: 1, glitch: 0,
+    cmd: ['GO NORTH. START!'],
+    hint: 'The further north you go, the more points.' },
+  { name: 'STAGE 2', space: 'A plane where you can go north, south, west and east',
+    dirs: ['N', 'S', 'W', 'E'], target: [1, 2], view: 2, glitch: 0,
+    cmd: ['GO EAST-NORTHEAST. START!'],
+    hint: 'The further north or east you go, the more points.' },
+  { name: 'STAGE 3', space: 'A space where you can go north, south, west, east, up and down',
+    dirs: ['N', 'S', 'W', 'E', 'U', 'D'], target: [1, 2, 1], view: 3, glitch: 0,
+    cmd: ['GO UP-EAST-NORTHEAST. START!'],
+    hint: 'The further north, east or up you go, the more points.' },
+  { name: 'STAGE ?Ã', space: 'A ã€€ï¼Ÿ where you can go north, south, west, east, ？ＡＥＩＹＳ and ＭＥ？ＯＳ',
+    dirs: ['N', 'S', 'W', 'E', 'U', 'D', 'X', 'G'], target: [1, 2, 1, 2], view: 4, glitch: .12, shuffle: true,
+    cmd: ['GO UP-EAST-NORTHEAST-ＭＥ？ＯＳ-ＭＥ？ＯＳ. START!'],
+    hint: 'The further north, east, up or ＭＥ？ＯＳ you go, the more points.' },
+  { name: 'STAGE ÌÌÌÌ', space: 'A \uFFFD\uFFFD\uFFFD where you can go north, south, west, east, ？ＡＥＩＹＳ, ＭＥ？ＯＳ, â€”, Ã¢â‚¬â„¢, ÍÍÍÍ and ÌÌÌÌ',
+    dirs: ['N', 'S', 'W', 'E', 'U', 'D', 'X', 'G', 'R', 'M', 'K', 'T'], target: [1, 2, 1, 2, 24, 4], view: 5, glitch: .35, shuffle: true,
+    cmd: ['GO UP-EAST-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-', 'Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-', 'Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-Ã¢â‚¬â„¢-NORTH-', 'ÌÌÌÌ-ÌÌÌÌ-ÌÌÌÌ-ÌÌÌÌ-EAST-ＭＥ？ＯＳ-ＭＥ？ＯＳ. START!'],
+    hint: 'The further north, east, up, ＭＥ？ＯＳ, Ã¢â‚¬â„¢ or ÌÌÌÌ you go, the more points.' },
+];
+
+// ---------- audio ----------
+let ac = null, master = null, musicTimer = null, nextNote = 0, step = 0, noiseBuf = null;
+function initAudio() {
+  if (ac) return;
+  try {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    noiseBuf = ac.createBuffer(1, ac.sampleRate * .1, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { ac = null; }
+}
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+function tone(out, f, t, dur, type, vol) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(out); o.start(t); o.stop(t + dur + .02);
+}
+function sfx(f, dur = .07, type = 'square', vol = .06) {
+  if (!ac) return;
+  tone(ac.destination, f, ac.currentTime, dur, type, vol);
+}
+const MEL = [
+  72,0,76,0,79,0,76,72, 74,0,72,0,67,0,0,0,
+  71,0,74,0,79,0,74,71, 72,0,71,0,67,0,0,0,
+  72,0,76,0,81,0,79,76, 77,0,76,0,74,0,72,0,
+  69,0,72,0,77,0,76,74, 72,0,74,0,76,0,79,0,
+];
+const ROOTS = [48, 43, 45, 41];
+const CHORDS = [[60, 64, 67], [59, 62, 67], [57, 60, 64], [57, 60, 65]];
+function startMusic() {
+  if (!ac) return;
+  stopMusic();
+  master = ac.createGain(); master.gain.value = .5; master.connect(ac.destination);
+  nextNote = ac.currentTime + .05; step = 0;
+  musicTimer = setInterval(schedule, 25);
+}
+function stopMusic() {
+  if (musicTimer) clearInterval(musicTimer);
+  musicTimer = null;
+  if (master) { try { master.disconnect(); } catch (e) {} master = null; }
+}
+function schedule() {
+  const spb = 60 / 138 / 4;
+  const gl = S.stage ? STAGES[S.stage - 1].glitch : 0;
+  while (nextNote < ac.currentTime + .12) {
+    const t = nextNote, i = step % 64, bar = Math.floor(i / 16), s16 = i % 16;
+    const wrong = () => gl && Math.random() < gl ? [1, -1, 6, -6, 13][Math.floor(Math.random() * 5)] : 0;
+    if (MEL[i] && !(gl && Math.random() < gl * .4)) tone(master, mf(MEL[i] + wrong()), t, spb * 1.6, 'square', .05);
+    if (s16 % 2 === 0) tone(master, mf(ROOTS[bar] + (s16 % 4 ? 12 : 0) + wrong()), t, spb * 1.5, 'triangle', .16);
+    if (s16 === 4 || s16 === 12) for (const n of CHORDS[bar]) tone(master, mf(n + wrong()), t, spb * 1.2, 'sawtooth', .018);
+    if (s16 % 8 === 0) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(40, t + .12);
+      g.gain.setValueAtTime(.35, t); g.gain.exponentialRampToValueAtTime(.001, t + .14);
+      o.connect(g).connect(master); o.start(t); o.stop(t + .15);
+    }
+    if (s16 % 2 === 1) {
+      const n = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+      n.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 7000;
+      g.gain.setValueAtTime(.06, t); g.gain.exponentialRampToValueAtTime(.001, t + .04);
+      n.connect(f).connect(g).connect(master); n.start(t); n.stop(t + .05);
+    }
+    nextNote += spb * (gl > .3 && Math.random() < .05 ? 1.5 : 1);
+    step++;
+  }
+}
+
+// ---------- state ----------
+// mode: title | intro | play | bonus | next | dead | arrived
+const S = { mode: 'title', stage: 0, pos: [0, 0, 0, 0, 0, 0], view: [0, 0, 0, 0, 0, 0], score: 0, timer: 0, T: 0, pops: [], cam: { x: 0, y: 0 }, arrivedOnce: false, deathAt: null };
+
+function glitch(str, amt) {
+  if (!amt) return str;
+  let o = '';
+  for (const c of str) o += (c !== ' ' && Math.random() < amt) ? JUNK[Math.floor(Math.random() * JUNK.length)] : c;
+  return o;
+}
+
+function buildPad() {
+  pad.innerHTML = '';
+  if (!(S.mode === 'play' || S.mode === 'bonus' || S.mode === 'intro')) return;
+  const st = STAGES[S.stage - 1];
+  let order = st.dirs.slice();
+  if (st.shuffle) order.sort(() => Math.random() - .5);
+  for (const k of order) {
+    const d = DIRS[k];
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'dir-' + k;
+    b.innerHTML = `<span class="dir" style="font-size:${d.ch.length > 5 ? 15 : 20}px">${d.ch}</span><kbd>${d.key}</kbd>`;
+    b.addEventListener('pointerdown', e => { e.preventDefault(); move(k); });
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); move(k); } });
+    pad.appendChild(b);
+  }
+}
+
+function startStage(n) {
+  S.stage = n; S.mode = 'intro'; S.timer = 2.6;
+  S.pos = [0, 0, 0, 0, 0, 0]; S.view = [0, 0, 0, 0, 0, 0];
+  S.cam = { x: 0, y: 0 };
+  buildPad();
+  if (n === 1 || !musicTimer) startMusic();
+  sfx(880, .1); sfx(1320, .15);
+}
+function startGame() {
+  initAudio();
+  if (ac && ac.state === 'suspended') ac.resume();
+  S.score = 0;
+  startStage(1);
+}
+function toTitle() {
+  S.mode = 'title'; S.stage = 0; stopMusic(); buildPad();
+}
+function die() {
+  S.mode = 'dead'; S.timer = 3; S.deathAt = project(S.view);
+  stopMusic();
+  buildPad();
+  pad.innerHTML = '';
+}
+function reached() {
+  const t = STAGES[S.stage - 1].target;
+  return t.every((v, i) => S.pos[i] >= v);
+}
+function move(k) {
+  if (!(S.mode === 'play' || S.mode === 'bonus')) return;
+  const st = STAGES[S.stage - 1];
+  if (!st.dirs.includes(k)) return;
+  const d = DIRS[k];
+  S.pos[d.axis] += d.sign;
+  if (d.sign < 0) { die(); return; }
+  if (S.mode === 'play') {
+    sfx(660 + S.pos[d.axis] * 20, .06);
+    if (reached()) {
+      S.score += 1; S.mode = 'bonus'; S.timer = 5;
+      S.pops.push({ txt: '+1', life: 1 });
+      sfx(784, .12); setTimeout(() => sfx(1047, .2), 90);
+    }
+  } else {
+    S.score += 1;
+    S.pops.push({ txt: '+1', life: .7 });
+    sfx(990 + Math.random() * 200, .05);
+  }
+}
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (S.mode === 'title' && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); startGame(); return; }
+  if (S.mode === 'arrived' && S.timer <= 0 && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); toTitle(); return; }
+  if (!S.stage) return;
+  for (const k of STAGES[S.stage - 1].dirs) if (DIRS[k].code === e.code) { e.preventDefault(); move(k); }
+});
+document.getElementById('stage').addEventListener('pointerdown', () => {
+  if (S.mode === 'title') startGame();
+  else if (S.mode === 'arrived' && S.timer <= 0) toTitle();
+});
+
+// ---------- projection ----------
+const UNIT = 46;
+function project(p) {
+  const v = S.stage ? STAGES[S.stage - 1].view : 1, s = UNIT, T = S.T;
+  let x = 0, y = 0;
+  if (v === 1) { y = -p[0] * s * 1.4; }
+  else if (v === 2) { x = p[1] * s * 1.4; y = -p[0] * s * 1.4; }
+  else {
+    x = (p[1] + p[0]) * .87 * s;
+    y = (p[1] - p[0]) * .5 * s - p[2] * s;
+    if (v >= 4) { x += Math.cos(T * .9) * .8 * s * p[3]; y += Math.sin(T * .9) * .8 * s * p[3]; }
+    if (v >= 5) {
+      x += Math.cos(-T * 2.3 + p[4] * .5) * .22 * s * p[4]; y += Math.sin(-T * 2.3 + p[4] * .5) * .22 * s * p[4];
+      x += Math.sin(T * 1.7) * .5 * s * p[5]; y -= .7 * s * p[5];
+    }
+  }
+  return { x, y };
+}
+
+// ---------- drawing ----------
+function faceMap() {
+  const g = [];
+  for (let y = 0; y < 16; y++) {
+    const row = [];
+    for (let x = 0; x < 16; x++) {
+      const dx = x - 7.5, dy = y - 8.2, r = Math.hypot(dx, dy * .95);
+      let c = r < 7.4 ? 's' : '.';
+      if (c === 's' && (y < 5 || (y < 7 && Math.abs(dx) > 5.2))) c = 'h';
+      if ((x >= 3 && x <= 5 || x >= 10 && x <= 12) && y >= 7 && y <= 9) c = 'e';
+      if ((x === 4 || x === 11) && y === 8) c = 'p';
+      if (y === 12 && x >= 6 && x <= 9) c = 'm';
+      if (y === 11 && (x === 2 || x === 13) && c === 's') c = 'b';
+      row.push(c);
+    }
+    g.push(row);
+  }
+  return g;
+}
+const FACE = faceMap();
+const FACE_COL = { h: '#3a2a1a', s: '#ffd2a8', e: '#ffffff', p: '#1d1a3a', m: '#c2335f', b: '#ff9bb5' };
+function drawFace(cx, cy, px) {
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const c = FACE[y][x]; if (c === '.') continue;
+    ctx.fillStyle = FACE_COL[c];
+    ctx.fillRect(Math.floor(cx + (x - 8) * px), Math.floor(cy + (y - 8) * px), Math.ceil(px), Math.ceil(px));
+  }
+}
+function txt(s, x, y, size, color, align = 'center', display = false) {
+  ctx.font = `${size}px ${display ? '"Rubik Mono One", "Arial Black", sans-serif' : '"DotGothic16", monospace'}`;
+  ctx.textAlign = align; ctx.fillStyle = color; ctx.fillText(s, x, y);
+}
+function fitTxt(s, x, y, size, color, maxW) {
+  ctx.font = `${size}px "DotGothic16", monospace`;
+  const w = ctx.measureText(s).width;
+  txt(s, x, y, w > maxW ? size * maxW / w : size, color);
+}
+
+function drawWorld() {
+  const st = STAGES[S.stage - 1], v = st.view, gl = st.glitch;
+  // background
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  if (v <= 3) { bg.addColorStop(0, '#7fd3ff'); bg.addColorStop(1, '#d9f3ff'); }
+  else if (v === 4) { bg.addColorStop(0, '#9b7fff'); bg.addColorStop(1, '#ffd0e6'); }
+  else { bg.addColorStop(0, '#2b0d3a'); bg.addColorStop(.5, '#0d3a37'); bg.addColorStop(1, '#3a0d17'); }
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // camera follows the player
+  const pp = project(S.view);
+  S.cam.x += (pp.x - S.cam.x) * .12; S.cam.y += (pp.y - S.cam.y) * .12;
+  const ox = W / 2 - S.cam.x, oy = H / 2 + 30 - S.cam.y;
+  const P = p => { const q = project(p); return { x: ox + q.x, y: oy + q.y }; };
+
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = v === 5 ? 'rgba(120,255,200,.35)' : 'rgba(29,26,58,.25)';
+  if (v === 1) {
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+    for (let n = -10; n <= 30; n++) { const q = P([n]); ctx.beginPath(); ctx.moveTo(q.x - 14, q.y); ctx.lineTo(q.x + 14, q.y); ctx.stroke(); }
+    txt('NORTH ↑', ox + 40, 120, 20, '#1d1a3a', 'left');
+    txt('SOUTH ↓', ox + 40, H - 30, 20, '#1d1a3a', 'left');
+  } else {
+    const R = v === 2 ? 14 : 9;
+    const ce = Math.round(S.view[1]), cn = Math.round(S.view[0]);
+    for (let i = -R; i <= R; i++) {
+      let a = P([cn - R, ce + i, 0]), b = P([cn + R, ce + i, 0]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      a = P([cn + i, ce - R, 0]); b = P([cn + i, ce + R, 0]);
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    // compass at origin
+    const o = P([0, 0, 0]);
+    const lab = (p, s) => { const q = P(p); txt(s, q.x, q.y, 18, v === 5 ? '#9fffd9' : '#1d1a3a'); };
+    lab([1.6, 0, 0], glitch('N', gl)); lab([0, 1.6, 0], glitch('E', gl));
+    lab([-1.6, 0, 0], glitch('S', gl)); lab([0, -1.6, 0], glitch('W', gl));
+    if (v >= 3) lab([0, 0, 1.8], glitch('UP', gl));
+    if (v >= 4) lab([0, 0, 0, 1.6], 'ＭＥ？ＯＳ');
+    if (v >= 5) { lab([0, 0, 0, 0, 3], 'Ã¢â‚¬â„¢'); lab([0, 0, 0, 0, 0, 1.6], 'ÌÌÌÌ'); }
+    void o;
+  }
+
+  // origin
+  const o = P([0, 0, 0, 0, 0, 0]);
+  ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#1d1a3a'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(o.x, o.y, 16, 8, 0, 0, 7); ctx.fill(); ctx.stroke();
+  txt(glitch('ORIGIN', gl), o.x, o.y + 30, 14, v === 5 ? '#9fffd9' : '#1d1a3a');
+
+  // target flag
+  if (S.mode !== 'bonus') {
+    const tp = st.target.concat([0, 0, 0, 0, 0]).slice(0, 6);
+    const t = P(tp);
+    if (v >= 3) {
+      const f = P([tp[0], tp[1], 0]);
+      ctx.setLineDash([4, 6]); ctx.strokeStyle = 'rgba(255,79,154,.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(t.x, t.y); ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.strokeStyle = '#1d1a3a'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(t.x, t.y - 60); ctx.stroke();
+    const wv = Math.sin(S.T * 6) * 4;
+    ctx.fillStyle = '#ff4f9a';
+    ctx.beginPath(); ctx.moveTo(t.x, t.y - 60); ctx.lineTo(t.x + 44, t.y - 50 + wv); ctx.lineTo(t.x, t.y - 38); ctx.fill();
+    txt('1pt', t.x + 16, t.y - 47, 11, '#ffffff', 'center', true);
+  }
+
+  // player: shadow + pole in 3D, then the face
+  const p = P(S.view);
+  if (v >= 3) {
+    const f = P([S.view[0], S.view[1], 0]);
+    ctx.fillStyle = 'rgba(29,26,58,.25)'; ctx.beginPath(); ctx.ellipse(f.x, f.y, 18, 8, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = 'rgba(29,26,58,.4)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+  }
+  if (v >= 4) {
+    // echoes of the player in the directions nobody can see
+    for (let i = 1; i <= (v === 5 ? 4 : 2); i++) {
+      ctx.globalAlpha = .25 / i;
+      drawFace(p.x + Math.sin(S.T * 3 + i) * 14 * i, p.y - 26 + Math.cos(S.T * 2 + i) * 10 * i, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  const bounce = S.mode === 'bonus' ? Math.abs(Math.sin(S.T * 12)) * 8 : Math.abs(Math.sin(S.T * 4)) * 3;
+  drawFace(p.x, p.y - 26 - bounce, 3);
+
+  // glitch post-processing
+  if (gl && !reduce) {
+    const n = Math.floor(gl * 20);
+    for (let i = 0; i < n; i++) {
+      if (Math.random() > gl * 1.5) continue;
+      const y = Math.random() * H, h = 4 + Math.random() * 30, dx = (Math.random() - .5) * 60 * gl * 3;
+      ctx.drawImage(cv, 0, y, W, h, dx, y, W, h);
+    }
+    if (v === 5) {
+      for (let i = 0; i < 26; i++) {
+        const c = JUNK[Math.floor(Math.random() * JUNK.length)];
+        txt(c, Math.random() * W, Math.random() * H, 14 + Math.random() * 30, `rgba(${Math.random() < .5 ? '255,79,154' : '120,255,200'},${.15 + Math.random() * .3})`);
+      }
+    }
+  }
+}
+
+function drawHUD() {
+  const st = STAGES[S.stage - 1], gl = st.glitch;
+  const dark = st.view === 5;
+  const ink = dark ? '#9fffd9' : '#1d1a3a';
+  // top bar
+  ctx.fillStyle = dark ? 'rgba(0,0,0,.5)' : 'rgba(255,250,240,.75)';
+  ctx.fillRect(0, 0, W, 40);
+  txt(glitch(st.name, gl * .5), 16, 28, 18, ink, 'left');
+  txt(`${S.score} pt`, W - 16, 30, 20, '#ff4f9a', 'right', true);
+
+  if (S.mode === 'play') {
+    st.cmd.forEach((line, i) => fitTxt(glitch(line, gl * .15), W / 2, 84 + i * 34, 28, ink, W - 60));
+  }
+  if (S.mode === 'bonus') {
+    txt('GAME CLEAR!', W / 2, 96, 44, '#ff4f9a', 'center');
+    fitTxt(glitch(st.hint, gl * .3), W / 2, 132, 20, ink, W - 60);
+    txt(S.timer.toFixed(1), W / 2, 176, 30, ink, 'center', true);
+  }
+  // coordinates
+  const labs = st.dirs.filter(k => DIRS[k].sign > 0);
+  const coord = labs.map(k => `${DIRS[k].ch} ${S.pos[DIRS[k].axis]}`).join('  ');
+  const goal = labs.map(k => `${DIRS[k].ch} ${st.target[DIRS[k].axis]}`).join('  ');
+  ctx.fillStyle = dark ? 'rgba(0,0,0,.5)' : 'rgba(255,250,240,.75)';
+  ctx.fillRect(0, H - 34, W, 34);
+  fitTxt(`NOW  ${glitch(coord, gl * .2)}   /   1 POINT AT  ${goal}`, W / 2, H - 11, 16, ink, W - 32);
+
+  for (const p of S.pops) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    txt(p.txt, W / 2 + 60, H / 2 - 40 - (1 - p.life) * 60, 28, '#ff4f9a', 'center', true);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawIntro() {
+  const st = STAGES[S.stage - 1], gl = st.glitch;
+  const k = Math.min(1, (2.6 - S.timer) * 3);
+  ctx.fillStyle = st.view === 5 ? '#0b0712' : '#ffe14d';
+  ctx.fillRect(0, 0, W, H);
+  const ink = st.view === 5 ? '#9fffd9' : '#1d1a3a';
+  ctx.globalAlpha = k;
+  fitTxt(glitch(st.name, gl * .3), W / 2, 180, 64, ink, W - 80);
+  fitTxt(glitch(st.space, gl * .2) + '. You stand at the origin.', W / 2, 250, 22, ink, W - 80);
+  if (S.timer < 1.3) st.cmd.forEach((line, i) => fitTxt(line, W / 2, 330 + i * 40, 34, '#ff4f9a', W - 60));
+  ctx.globalAlpha = 1;
+}
+
+function drawTitle() {
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#7fd3ff'); bg.addColorStop(1, '#ffe14d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // sunburst
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(reduce ? 0 : S.T * .1);
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  for (let i = 0; i < 16; i++) { ctx.rotate(Math.PI / 8); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(900, -90); ctx.lineTo(900, 90); ctx.fill(); }
+  ctx.restore();
+  drawFace(W / 2, 150 - Math.abs(Math.sin(S.T * 3)) * 14, 6);
+  txt('WINNING RUN', W / 2 + 4, 314, 72, '#1d1a3a', 'center', true);
+  txt('WINNING RUN', W / 2, 310, 72, '#ff4f9a', 'center', true);
+  txt('A very simple game. Just go where you are told.', W / 2, 360, 22, '#1d1a3a');
+  if (Math.floor(S.T * 2) % 2 || reduce) txt('CLICK / SPACE TO START', W / 2, 420, 22, '#1d1a3a');
+  if (S.arrivedOnce) txt('you have arrived.', W - 16, H - 16, 13, 'rgba(29,26,58,.45)', 'right');
+}
+
+function drawDead() {
+  // the face fills the whole screen; no music, nothing else
+  ctx.fillStyle = "#ffd2a8"; ctx.fillRect(0, 0, W, H);
+  drawFace(W / 2, H / 2 + H * .12, W / 16);
+}
+
+function drawArrived() {
+  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, W, H);
+  const k = Math.min(1, Math.max(0, (6 - S.timer - 1.5) / 2));
+  ctx.globalAlpha = k;
+  txt('you have arrived.', W / 2, H / 2 + 8, 26, '#e8e8e8');
+  ctx.globalAlpha = 1;
+}
+
+// ---------- loop ----------
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  S.T += dt;
+  for (let i = 0; i < 6; i++) S.view[i] += (S.pos[i] - S.view[i]) * Math.min(1, dt * 14);
+  for (const p of S.pops) p.life -= dt * 1.5;
+  S.pops = S.pops.filter(p => p.life > 0);
+
+  if (S.mode === 'intro') { S.timer -= dt; if (S.timer <= 0) { S.mode = 'play'; sfx(1047, .15); } }
+  else if (S.mode === 'bonus') {
+    S.timer -= dt;
+    if (S.timer <= 0) {
+      if (S.stage < STAGES.length) { startStage(S.stage + 1); }
+      else { S.mode = 'arrived'; S.timer = 6; S.arrivedOnce = true; stopMusic(); pad.innerHTML = ''; }
+    }
+  }
+  else if (S.mode === 'dead') { S.timer -= dt; if (S.timer <= 0) toTitle(); }
+  else if (S.mode === 'arrived') { S.timer = Math.max(0, S.timer - dt); }
+
+  if (S.mode === 'title') drawTitle();
+  else if (S.mode === 'intro') drawIntro();
+  else if (S.mode === 'play' || S.mode === 'bonus') { drawWorld(); drawHUD(); }
+  else if (S.mode === 'dead') drawDead();
+  else if (S.mode === 'arrived') drawArrived();
+  requestAnimationFrame(frame);
+}
+const go = () => requestAnimationFrame(t => { last = t; frame(t); });
+(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go, go);
+})();
+</script>
+
+</body></html>
