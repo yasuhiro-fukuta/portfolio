@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Yakkun Games</title>
+<meta name="description" content="ブラウザでそのまま遊べる、ちょっとむかつくゲーム集。インストール不要・無料。">
+<meta property="og:title" content="Yakkun Games">
+<meta property="og:description" content="ブラウザでそのまま遊べる、ちょっとむかつくゲーム集。インストール不要・無料。">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/thumbs/support-maze.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;700&family=DotGothic16&display=swap">
+<style>
+/* Layout: 大きな手書き看板風ヘッダー → ゲームのカセット棚（2〜3列グリッド）→ 小さなフッター */
+:root{
+  --bg:#f1ece2; --shelf:#e3dccd; --card:#fffdf8; --ink:#1f1c18; --muted:#6e675c; --line:#d4ccbc;
+  --accent:#e2462b; --accent-ink:#fffdf8;
+  --f-disp:"Dela Gothic One","Hiragino Sans",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+  --f-dot:"DotGothic16",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17150f; --shelf:#221f18; --card:#25221b; --ink:#f1ece2; --muted:#a59d8f; --line:#3a352b;
+  --accent:#ff6a4a; --accent-ink:#17150f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17150f; --shelf:#221f18; --card:#25221b; --ink:#f1ece2; --muted:#a59d8f; --line:#3a352b;
+  --accent:#ff6a4a; --accent-ink:#17150f; color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7}
+img{max-width:100%;display:block}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{padding-block:48px 28px}
+.sign{display:grid;gap:10px}
+.eyebrow{font-family:var(--f-dot);font-size:13px;color:var(--muted);letter-spacing:.08em}
+h1{margin:0;font-family:var(--f-disp);font-weight:400;font-size:clamp(48px,12vw,120px);line-height:.95;letter-spacing:-.01em}
+h1 span{color:var(--accent)}
+.lede{margin:6px 0 0;max-width:34em;font-size:16px}
+.count{font-family:var(--f-dot);font-size:13px;display:flex;gap:14px;flex-wrap:wrap;color:var(--muted)}
+.count b{color:var(--ink);font-weight:400}
+
+.shelf{background:var(--shelf);border-block:1px solid var(--line);padding-block:28px 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:22px}
+.game{background:var(--card);border:1px solid var(--line);border-radius:4px;display:grid;grid-template-rows:auto 1fr;overflow:hidden;transition:transform .15s}
+.game:hover{transform:translateY(-3px)}
+.thumb{position:relative;aspect-ratio:4/3;max-width:100%;background:var(--line);overflow:hidden;border-bottom:1px solid var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.badge{position:absolute;top:10px;left:10px;font-family:var(--f-dot);font-size:12px;background:var(--accent);color:var(--accent-ink);padding:1px 8px;border-radius:2px}
+.body{padding:16px 16px 18px;display:grid;gap:10px;align-content:start}
+h2{margin:0;font-family:var(--f-disp);font-weight:400;font-size:22px;line-height:1.3;text-wrap:balance}
+h2 a{text-decoration:none}
+h2 a::after{content:"";position:absolute;inset:0}
+.game{position:relative}
+.desc{margin:0;font-size:14px;color:var(--muted)}
+.tags{display:flex;gap:6px;flex-wrap:wrap;font-size:12px}
+.tags span{border:1px solid var(--line);border-radius:999px;padding:1px 9px}
+.sub{position:relative;z-index:1;font-size:13px;font-family:var(--f-dot)}
+
+footer{padding-block:28px 40px;font-size:13px;color:var(--muted);display:grid;gap:4px}
+@media (prefers-reduced-motion:reduce){.game{transition:none}.game:hover{transform:none}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="sign">
+    <span class="eyebrow">BROWSER GAMES BY YAKKUN — NAGISO, JAPAN</span>
+    <h1>Yakkun<br><span>Games</span></h1>
+    <p class="lede">ブラウザを開けばすぐ遊べる、ちょっと変で、ちょっとむかつくゲーム集。インストール不要・無料。スマホでもPCでも。</p>
+    <div class="count"><span><b>6</b> GAMES</span><span>更新 2026.10</span></div>
+  </div>
+</header>
+
+<main class="shelf">
+  <div class="wrap grid">
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/support-maze.jpg" alt="人間にたどり着けのタイトル画面" loading="lazy"><span class="badge">NEW</span></div>
+      <div class="body">
+        <h2><a href="/support-maze/">人間にたどり着け</a></h2>
+        <p class="desc">FAQ、AIチャット、問い合わせフォーム、自動返信メール、電話の自動音声。6つの関門を越えてメーカーの「人間」と話せ。</p>
+        <div class="tags"><span>アドベンチャー</span><span>1人</span><span>約5分</span></div>
+      </div>
+    </article>
+
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/popup-hunt.jpg" alt="ポップアップ狩りのタイトル画面" loading="lazy"></div>
+      <div class="body">
+        <h2><a href="/popup-hunt/">ポップアップ狩り</a></h2>
+        <p class="desc">Win95のダイアログから、ブラウザ広告、アプリ内広告、現代のダークパターンまで。湧き続けるポップアップを×で閉じまくれ。</p>
+        <div class="tags"><span>アクション</span><span>1人</span><span>4ステージ</span></div>
+      </div>
+    </article>
+
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/winning-run.jpg" alt="WINNING RUNのタイトル画面" loading="lazy"></div>
+      <div class="body">
+        <h2><a href="/winning-run/">WINNING RUN</a></h2>
+        <p class="desc">言われた方角へ進むだけの簡単なゲーム。のはずが、方角はどんどん増え、文字は化けていく。</p>
+        <div class="tags"><span>反射神経</span><span>1人</span><span>キーボード対応</span></div>
+        <a class="sub" href="/winning-run/en/">English version →</a>
+      </div>
+    </article>
+
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/daifugo.jpg" alt="大富豪のゲーム画面" loading="lazy"></div>
+      <div class="body">
+        <h2><a href="/daifugo/">大富豪</a></h2>
+        <p class="desc">CPU3人と4人対戦。革命、8切り、Jバック、ジョーカー入りのおなじみルール。</p>
+        <div class="tags"><span>トランプ</span><span>CPU対戦</span></div>
+      </div>
+    </article>
+
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/kiso-downhill.jpg" alt="木曽路ダウンヒルのタイトル画面" loading="lazy"></div>
+      <div class="body">
+        <h2><a href="/kiso-downhill/">木曽路ダウンヒル</a></h2>
+        <p class="desc">藪原から三留野まで、木曽川沿い50kmをE-bikeで下る。岩・丸太・猿をよけて、宿場を駆け抜けろ。</p>
+        <div class="tags"><span>ランゲーム</span><span>1人</span><span>スマホはタッチ操作</span></div>
+      </div>
+    </article>
+
+    <article class="game">
+      <div class="thumb"><img src="/thumbs/duel-trump.jpg" alt="デュエルトランプのログイン画面" loading="lazy"></div>
+      <div class="body">
+        <h2><a href="/duel-trump/">デュエルトランプ</a></h2>
+        <p class="desc">トランプ1組で遊ぶ、本格カードバトル。CPU対戦、ストーリー、パック開封、デッキ構築まで。</p>
+        <div class="tags"><span>カードバトル</span><span>CPU・オンライン</span><span>ゲストで遊べる</span></div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="wrap">
+  <span>Made by Yakkun（福田康宏）in 南木曽町, 長野.</span>
+  <span>© 2026 From Scratch LLC</span>
+</footer>
+</body>
+</html>
