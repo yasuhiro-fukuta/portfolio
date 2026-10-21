@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="FAQ、AIチャット、問い合わせフォーム、自動返信メール、電話の自動音声。6つの関門を越えてメーカーの「人間」にたどり着け。いい意味でむかつくブラウザゲーム。">
+<meta property="og:title" content="人間にたどり着け">
+<meta property="og:description" content="FAQ、AIチャット、フォーム、自動返信メール、電話の自動音声。6つの関門を越えてサポートの「人間」にたどり着け。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>人間にたどり着け</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: ゲーム用HUD（固定）＋ 中央1カラムの「偽サポートサイト」画面。HUDはドット書体、サイトは企業っぽいゴシック */
+:root{
+  --bg:#e9edf2; --panel:#ffffff; --ink:#1c2330; --muted:#677385; --line:#d3d9e2;
+  --brand:#1f68ad; --brand-ink:#ffffff; --hot:#df4f27; --ok:#2b8a57; --faint:#c3cad4;
+  --hud:#16202c; --hud-ink:#e9f0f7; --chip:#f2f5f8;
+  --f-hud:"DotGothic16","Hiragino Kaku Gothic ProN",monospace;
+  --f-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161e; --panel:#1a212b; --ink:#e6ebf1; --muted:#95a1b2; --line:#2b3542;
+  --brand:#5ea5e3; --brand-ink:#0d1520; --hot:#ff7b4f; --ok:#52c48a; --faint:#323c49;
+  --hud:#0b0f15; --hud-ink:#e9f0f7; --chip:#222b37; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161e; --panel:#1a212b; --ink:#e6ebf1; --muted:#95a1b2; --line:#2b3542;
+  --brand:#5ea5e3; --brand-ink:#0d1520; --hot:#ff7b4f; --ok:#52c48a; --faint:#323c49;
+  --hud:#0b0f15; --hud-ink:#e9f0f7; --chip:#222b37; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--hud)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+
+/* HUD */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--hud);color:var(--hud-ink);font-family:var(--f-hud);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hud-in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
+.pips{display:flex;gap:4px;flex-wrap:wrap;font-size:12px}
+.pip{padding:1px 7px;border:1px solid #3a4a5c;color:#7f91a6;border-radius:2px}
+.pip.on{background:var(--hud-ink);color:var(--hud);border-color:var(--hud-ink)}
+.pip.done{color:#8fd4ad;border-color:#2f6b4c}
+.hud-r{display:flex;gap:10px;align-items:center;font-size:13px;font-variant-numeric:tabular-nums}
+.breath{background:transparent;border:1px solid #4d6075;color:var(--hud-ink);padding:2px 8px;border-radius:2px;font-family:var(--f-hud);font-size:12px}
+.breath:disabled{opacity:.35;cursor:default}
+.irr{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12px}
+.bar{flex:1;height:10px;background:#263445;border-radius:1px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#57c08a,#e7c14a 50%,#ff5d33);transition:width .35s}
+.irr-l{min-width:6.5em;text-align:right}
+.hud.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
+
+/* Stage frame */
+main{padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:760px;margin:0 auto;display:grid;gap:16px}
+.mission{font-family:var(--f-hud);font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.mission b{color:var(--hot);font-weight:400}
+.site{background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.site-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{font-weight:700;letter-spacing:.04em;color:var(--brand)}
+.logo small{color:var(--muted);font-weight:400;margin-left:6px;font-size:12px}
+.site-b{padding:18px 16px;display:grid;gap:14px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.35}
+h2{font-size:20px}
+h3{font-size:16px}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.btn{background:var(--brand);color:var(--brand-ink);border:0;border-radius:4px;padding:10px 16px;font-weight:700}
+.btn.ghost{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.btn.big{padding:14px 22px;font-size:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px}
+.chip:hover{border-color:var(--brand)}
+.note{border-left:3px solid var(--hot);padding:8px 12px;background:var(--chip);font-size:14px}
+
+/* Stage 1: product + FAQ */
+.hero-p{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}
+.prod{aspect-ratio:1;max-width:100%;border-radius:6px;background:
+  repeating-linear-gradient(0deg,var(--chip) 0 10px,var(--line) 10px 12px);display:grid;place-items:center;font-family:var(--f-hud);color:var(--muted);font-size:12px;text-align:center}
+.faq details{border-bottom:1px solid var(--line);padding:10px 0}
+.faq summary{cursor:pointer;font-weight:500}
+.faq .ans{padding:8px 0 0;display:grid;gap:8px;font-size:14px}
+.search{display:flex;gap:6px}
+.search input{flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--panel)}
+.foot{border-top:1px solid var(--line);padding:14px 16px;display:grid;gap:8px;font-size:12px;color:var(--muted)}
+.foot .links{display:flex;gap:4px 14px;flex-wrap:wrap}
+.lnk{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;font-size:12px}
+.secret{color:var(--faint);font-size:10px;text-decoration:none}
+.secret:hover{text-decoration:underline}
+
+/* Stage 2 & 6: chat */
+.chat{display:grid;gap:10px;max-height:420px;overflow-y:auto;padding:4px 2px}
+.msg{max-width:85%;padding:9px 12px;border-radius:10px;font-size:14px;white-space:pre-wrap}
+.msg.bot{background:var(--chip);border:1px solid var(--line);justify-self:start;border-top-left-radius:2px}
+.msg.me{background:var(--brand);color:var(--brand-ink);justify-self:end;border-top-right-radius:2px}
+.msg .who{display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+.msg.typing{color:var(--muted)}
+.chat-in{display:flex;gap:6px}
+.chat-in input{flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;padding:9px 10px;background:var(--panel)}
+
+/* Stage 3: form */
+.form{display:grid;gap:14px}
+.f{display:grid;gap:4px}
+.f label{font-weight:500;font-size:14px}
+.req{color:var(--hot);font-size:11px;margin-left:6px}
+.f input,.f select,.f textarea{border:1px solid var(--line);border-radius:4px;padding:9px 10px;background:var(--panel);width:100%;min-width:0}
+.f textarea{min-height:90px;resize:vertical}
+.err{color:var(--hot);font-size:12px}
+.terms{height:110px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:10px;font-size:11px;color:var(--muted);background:var(--chip)}
+.cap{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;max-width:330px}
+.tile{aspect-ratio:1;max-width:100%;border:2px solid transparent;border-radius:3px;font-size:13px;display:grid;place-items:center;
+  background:repeating-linear-gradient(45deg,var(--chip) 0 6px,var(--panel) 6px 12px);color:var(--ink);font-weight:500}
+.tile.sel{border-color:var(--brand);box-shadow:inset 0 0 0 3px var(--brand)}
+.cap-h{background:var(--brand);color:var(--brand-ink);padding:8px 10px;border-radius:3px 3px 0 0;font-size:13px;max-width:330px}
+
+/* Stage 4: mail */
+.mail{display:grid;grid-template-columns:150px 1fr;min-height:360px}
+.mbox{border-right:1px solid var(--line);padding:10px;display:grid;gap:4px;align-content:start}
+.mbox button{text-align:left;background:none;border:0;padding:6px 8px;border-radius:4px;font-size:13px;display:flex;justify-content:space-between}
+.mbox button.on{background:var(--chip);font-weight:700}
+.mlist{display:grid;align-content:start;min-width:0}
+.mi{display:grid;gap:2px;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 12px;min-width:0}
+.mi .s{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi .fr{font-size:12px;color:var(--muted)}
+.mi.read .s{font-weight:400}
+.mview{padding:14px;display:grid;gap:10px;font-size:14px;min-width:0}
+.mview pre{white-space:pre-wrap;font-family:var(--f-body);margin:0}
+.tiny{font-size:9px;color:var(--muted);line-height:1.5}
+.tiny button{font-size:9px}
+.daybar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--line);flex-wrap:wrap;font-size:13px}
+
+/* Stage 5: phone */
+.phone{max-width:340px;margin:0 auto;background:var(--hud);color:var(--hud-ink);border-radius:26px;padding:18px 16px 22px;display:grid;gap:14px;width:100%}
+.screen{background:#0a1a12;color:#7ff0ad;font-family:var(--f-hud);border-radius:10px;padding:12px;min-height:170px;font-size:13px;line-height:1.6;display:grid;gap:6px;align-content:start}
+.screen .st{display:flex;justify-content:space-between;color:#4aa877;font-size:11px}
+.screen .q{font-size:30px;text-align:center;color:#c8ffde}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.key{aspect-ratio:1.5;max-width:100%;border-radius:12px;background:#24303e;border:0;color:var(--hud-ink);font-family:var(--f-hud);font-size:20px}
+.key:active{background:#3a4b60}
+.buf{text-align:center;font-family:var(--f-hud);letter-spacing:.3em;min-height:1.6em}
+
+/* Overlays */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--hud);color:var(--hud-ink);
+  font-family:var(--f-hud);padding:8px 14px;border-radius:4px;font-size:13px;max-width:calc(100% - 32px);z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.toast b{color:#ff8d66;font-weight:400}
+.end{text-align:center;display:grid;gap:14px;justify-items:center;padding:30px 16px}
+.end h1{font-family:var(--f-hud);font-weight:400;font-size:clamp(28px,7vw,44px)}
+.stats{display:grid;grid-template-columns:repeat(3,auto);gap:4px 22px;font-variant-numeric:tabular-nums;font-size:14px}
+.stats dt{color:var(--muted);font-size:12px}
+.stats dd{margin:0;font-family:var(--f-hud);font-size:22px}
+.title-intro{font-family:var(--f-hud);font-weight:400;font-size:clamp(30px,8vw,52px);line-height:1.2}
+.rules{text-align:left;display:grid;gap:6px;font-size:14px;max-width:520px}
+
+@media (max-width:560px){
+  .hero-p{grid-template-columns:1fr}
+  .prod{max-width:160px}
+  .mail{grid-template-columns:1fr}
+  .mbox{border-right:0;border-bottom:1px solid var(--line);grid-auto-flow:column;overflow-x:auto}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="hud" id="hud">
+  <div class="hud-in">
+    <div class="pips" id="pips"></div>
+    <div class="hud-r"><span id="clock">00:00</span><button class="breath" id="breath" type="button">深呼吸 ×3</button></div>
+    <div class="irr"><span>イライラ</span><div class="bar"><i id="bar"></i></div><span class="irr-l" id="irrl">平常心 0</span></div>
+  </div>
+</header>
+<main><div class="wrap" id="app"></div></main>
+<div class="toast" id="toast"></div>
+
+<script>
+const STAGES=["FAQ","AIチャット","フォーム","メール","電話","人間"];
+const $=s=>document.querySelector(s);
+const app=$("#app");
+let S;
+function fresh(){return{stage:0,irr:0,t0:0,t1:0,breaths:3,ref:String(1000+Math.floor(Math.random()*9000)),timers:[],tick:null,used:0};}
+S=fresh();
+
+/* ---------- HUD ---------- */
+function hud(){
+  $("#pips").innerHTML=STAGES.map((n,i)=>`<span class="pip ${S.stage===i+1?"on":S.stage>i+1?"done":""}">${i+1} ${n}</span>`).join("");
+  $("#bar").style.width=S.irr+"%";
+  const lv=S.irr<25?"平常心":S.irr<50?"モヤモヤ":S.irr<75?"イライラ":"限界寸前";
+  $("#irrl").textContent=lv+" "+S.irr;
+  const b=$("#breath");b.textContent="深呼吸 ×"+S.breaths;b.disabled=S.breaths<=0||S.stage<1||S.stage>6;
+}
+function clock(){
+  if(!S.t0)return;
+  const t=Math.floor(((S.t1||Date.now())-S.t0)/1000);
+  $("#clock").textContent=String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+}
+setInterval(clock,500);
+let toastT;
+function toast(html){const t=$("#toast");t.innerHTML=html;t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),2200);}
+function irr(n,why){
+  if(S.stage<1||S.stage>6)return;
+  S.irr=Math.max(0,Math.min(100,S.irr+n));
+  if(n>0){toast(`<b>イライラ +${n}</b>　${why||""}`);const h=$("#hud");h.classList.remove("shake");void h.offsetWidth;h.classList.add("shake");}
+  hud();
+  if(S.irr>=100)gameOver();
+}
+$("#breath").onclick=()=>{if(S.breaths<=0)return;S.breaths--;S.used++;S.irr=Math.max(0,S.irr-15);toast("すぅ……はぁ……　イライラ -15");hud();};
+function clearTimers(){S.timers.forEach(clearInterval);S.timers.forEach(clearTimeout);S.timers=[];}
+function go(n){clearTimers();S.stage=n;hud();window.scrollTo(0,0);[intro,s1,s2,s3,s4,s5,s6][n]();}
+function mission(txt){return `<div class="mission"><b>MISSION ${S.stage}</b><span>${txt}</span></div>`;}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- 0. Intro ---------- */
+function intro(){
+  app.innerHTML=`<div class="site"><div class="end">
+    <p class="muted small">サポート迷宮アドベンチャー</p>
+    <h1 class="title-intro">人間に<br>たどり着け</h1>
+    <p>購入3日目。全自動ふとんたたみ機「タタムンZ」が、ふとんではなく<b>あなたの猫</b>をたたもうとし始めた。<br>メーカーの人間と話して、止め方を聞き出そう。</p>
+    <div class="rules">
+      <p>・FAQ、AIチャット、問い合わせフォーム、自動返信メール、電話の自動音声。6つの関門を越えると人間に会える。</p>
+      <p>・罠を踏むと<b>イライラ</b>が溜まる。100になったら心が折れてゲームオーバー。</p>
+      <p>・<b>深呼吸</b>は3回まで。イライラを15下げる。</p>
+      <p>・メールに出てくる番号は覚えておくこと。</p>
+    </div>
+    <button class="btn big" id="start">サポートに連絡する</button>
+  </div></div>`;
+  $("#start").onclick=()=>{S.t0=Date.now();go(1);};
+}
+
+/* ---------- 1. Product page + FAQ ---------- */
+function s1(){
+  const faqs=[
+    ["タタムンZの電源が入りません","電源プラグがコンセントに差し込まれているかご確認ください。"],
+    ["たたみ方を変更できますか？","三つ折り・四つ折り・屏風だたみの3種類からお選びいただけます。"],
+    ["タタムンZが布団以外のものをたたもうとします","まれに布団以外の柔らかい物体を布団と認識する場合がございます。対処方法の続きはサポートへお問い合わせください。"],
+    ["動作音が大きいです","仕様です。"],
+    ["猫アレルギーに対応していますか？","タタムンZは猫ではありません。"],
+    ["お問い合わせ窓口はどこですか？","まずはこちらのよくある質問をご確認ください。"],
+  ];
+  app.innerHTML=mission("問い合わせ窓口を探せ")+`
+  <div class="site">
+    <div class="site-h"><span class="logo">MIRAI LIVING<small>ミライリビング株式会社</small></span>
+      <div class="row"><button class="lnk" data-trap="製品一覧はセール情報でいっぱいだった">製品一覧</button><button class="btn" id="contact">お問い合わせ</button></div></div>
+    <div class="site-b">
+      <div class="hero-p"><div class="prod">TATAMUN Z<br>¥39,800</div>
+        <div><h2>全自動ふとんたたみ機 タタムンZ</h2><p class="muted">朝の3分を、あなたに。AIがふとんを認識して美しくたたみます。</p></div></div>
+      <div id="faqzone" hidden>
+        <div class="row" style="justify-content:space-between"><h3>よくある質問</h3><button class="btn ghost" id="aibig">AIアシスタントに質問する</button></div>
+        <form class="search" id="srch"><input id="q" placeholder="キーワードで検索（例：猫）" aria-label="FAQ検索"><button class="btn">検索</button></form>
+        <div class="faq">${faqs.map((f,i)=>`<details><summary>Q. ${f[0]}</summary><div class="ans"><p>A. ${f[1]}</p>
+          <div class="row small muted">この回答は役に立ちましたか？<button class="chip" data-h="y">はい</button><button class="chip" data-h="n">いいえ</button></div></div></details>`).join("")}</div>
+      </div>
+    </div>
+    <div class="foot"><div class="links">
+      ${["会社概要","採用情報","個人情報保護方針","サイトマップ","公式SNS","IR情報"].map(l=>`<button class="lnk" data-trap="「${l}」を開いた。関係なかった">${l}</button>`).join("")}</div>
+      <p>© 2026 MIRAI LIVING Co., Ltd. All rights reserved. <button class="lnk secret" id="secret">上記で解決しない場合</button></p></div>
+  </div>`;
+  let opened=false;
+  $("#contact").onclick=()=>{
+    if(!opened){opened=true;$("#faqzone").hidden=false;toast("お問い合わせボタンを押したら FAQ が出てきた");$("#faqzone").scrollIntoView({behavior:"smooth"});}
+    else irr(5,"何度押しても FAQ に戻される");
+  };
+  app.querySelectorAll("[data-trap]").forEach(b=>b.onclick=()=>irr(6,b.dataset.trap));
+  app.querySelectorAll("[data-h]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.h==="y")irr(8,"「解決してよかったです！」解決していない");
+    else irr(4,"「今後の参考にさせていただきます」");
+  });
+  $("#aibig").onclick=()=>irr(10,"AIアシスタントは現在メンテナンス中です");
+  $("#srch").onsubmit=e=>{e.preventDefault();const q=$("#q").value.trim()||"（空欄）";irr(5,`「${esc(q)}」に一致するFAQは0件。人気のFAQ：電源の入れ方`);};
+  $("#secret").onclick=()=>{toast("小さすぎるリンクを発見！");go(2);};
+}
+
+/* ---------- 2. AI chat ---------- */
+function s2(){
+  app.innerHTML=mission("AIに「人間を出せ」と伝え切れ")+`
+  <div class="site">
+    <div class="site-h"><span class="logo">AIサポート<small>ミライちゃん（24時間対応）</small></span><span class="small muted" id="cnt"></span></div>
+    <div class="site-b">
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="row" id="opts"></div>
+      <form class="chat-in" id="cf"><input id="ci" placeholder="メッセージを入力" aria-label="メッセージ"><button class="btn">送信</button></form>
+    </div>
+  </div>`;
+  const chat=$("#chat");let level=0,busy=false;
+  const say=(who,txt,cls)=>{const d=document.createElement("div");d.className="msg "+cls;d.innerHTML=(cls==="bot"?`<span class="who">${who}</span>`:"")+esc(txt);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;};
+  const bot=(txt,after)=>{busy=true;const t=say("ミライちゃん","入力中…","bot typing");S.timers.push(setTimeout(()=>{t.remove();say("ミライちゃん",txt,"bot");busy=false;after&&after();},700));};
+  const deflect=["オペレーターをご希望ですね！まずはよくある質問をご覧ください。\nQ. タタムンZの電源が入りません","かしこまりました！人間らしい会話を心がけますね。何でもお聞きください！","有人対応をご希望の場合は、AIチャットで解決しなかった旨をお知らせください。"];
+  const random=["申し訳ありません、よくわかりませんでした。「電源」「たたみ方」などのキーワードでお試しください。","タタムンZは三つ折り・四つ折り・屏風だたみに対応しています！","ご質問ありがとうございます！他にご質問はありますか？","猫ちゃんかわいいですよね！ほかにお手伝いできることはありますか？"];
+  const isHuman=t=>/人間|オペレーター|担当|有人|ひと|人と|スタッフ|窓口/.test(t);
+  function setOpts(list){$("#opts").innerHTML=list.map(o=>`<button class="chip" type="button">${o}</button>`).join("");
+    $("#opts").querySelectorAll("button").forEach(b=>b.onclick=()=>send(b.textContent));}
+  const mainOpts=()=>setOpts(["オペレーターと話したい","猫がたたまれそう","返品したい","AIじゃ無理です"]);
+  function upd(){$("#cnt").textContent="有人対応への道 "+"■".repeat(level)+"□".repeat(3-level);}
+  function ask(){setOpts(["はい","いいえ"]);bot("この回答で解決しましたか？");}
+  let waitingYN=false;
+  function send(t){
+    if(busy)return;t=t.trim();if(!t)return;say("",t,"me");
+    if(waitingYN){
+      if(/^(いいえ|いえ|no|解決してない|してない)/i.test(t)){
+        waitingYN=false;level++;upd();
+        if(level>=3){setOpts([]);bot("申し訳ありません。有人チャットは現在受付時間外です（受付：平日 10:00〜10:15）。\nお問い合わせフォームをご利用ください。",()=>S.timers.push(setTimeout(()=>{toast("AIを振り切った！");go(3);},1300)));}
+        else{bot(level===1?"そうでしたか…！もう一度、ご用件を教えてください。":"もう少しです！ご用件をもう一度お願いします。",mainOpts);}
+      }else if(/^(はい|yes|うん)/i.test(t)){waitingYN=false;level=0;upd();irr(14,"「解決してよかったです！」最初からやり直し");bot("解決してよかったです！他にご質問はありますか？",mainOpts);}
+      else{irr(4,"「はい」か「いいえ」でお答えください");bot("「はい」か「いいえ」でお答えください。",()=>setOpts(["はい","いいえ"]));}
+      return;
+    }
+    if(isHuman(t)){bot(deflect[Math.min(level,2)],()=>{waitingYN=true;ask();});}
+    else{irr(5,"話がかみ合わない");bot(random[Math.floor(Math.random()*random.length)],mainOpts);}
+  }
+  $("#cf").onsubmit=e=>{e.preventDefault();const v=$("#ci").value;$("#ci").value="";send(v);};
+  upd();bot("こんにちは！AIアシスタントのミライちゃんです😊\nどんなことでもお気軽にご質問ください！",mainOpts);
+}
+
+/* ---------- 3. Form ---------- */
+function s3(){
+  const cats=["製品のご購入について","キャンペーンについて","取材のお申込み","採用について","法人のお客様","代理店募集について","IRに関するお問い合わせ","サイトのご意見","その他（製品以外）","その他（製品の不具合）"];
+  const tiles=["ふとん","まくら","ねこ","しきぶとん","タタムンZ","ふとん","ざぶとん","かけぶとん","ねこ（たたまれかけ）"];
+  const ok=new Set([0,3,5,7]);
+  const template="いつもお世話になっております。先日購入したタタムンZについてご相談です。数日前から、ふとんではなく我が家の猫をたたもうとします。猫は無事ですが、とても怒っています。止め方を教えてください。至急お願いします。よろしくお願いいたします。";
+  app.innerHTML=mission("フォームを送信せよ")+`
+  <div class="site">
+    <div class="site-h"><span class="logo">お問い合わせフォーム<small>STEP 1 / 3 入力</small></span><button class="chip" type="button" id="auto">ブラウザの自動入力</button></div>
+    <form class="site-b form" id="fm" novalidate>
+      <div class="f"><label for="nm">お名前<span class="req">必須</span></label><input id="nm"><span class="err" data-e="nm"></span></div>
+      <div class="f"><label for="em">メールアドレス<span class="req">必須</span></label><input id="em" type="email"><span class="err" data-e="em"></span></div>
+      <div class="f"><label for="tel">電話番号<span class="req">必須</span></label><input id="tel" inputmode="numeric"><span class="small muted">※半角数字・ハイフンなし</span><span class="err" data-e="tel"></span></div>
+      <div class="f"><label for="cat">お問い合わせ種別<span class="req">必須</span></label><select id="cat"><option value="">選択してください</option>${cats.map(c=>`<option>${c}</option>`).join("")}</select><span class="err" data-e="cat"></span></div>
+      <div class="f"><label for="body">お問い合わせ内容<span class="req">必須</span></label><textarea id="body" placeholder="20文字以上100文字以内"></textarea>
+        <div class="row small"><span class="muted" id="len">0 / 100</span><button type="button" class="chip" id="tpl">例文を入れる</button></div><span class="err" data-e="body"></span></div>
+      <div class="f"><label>利用規約</label><div class="terms" id="terms">${"第1条 本規約は、ミライリビング株式会社が提供するサポートサービスの利用条件を定めるものです。第2条 お客様は、お問い合わせの前によくある質問を確認したものとみなします。第3条 回答は3〜5営業日以内を目安としますが、これを保証するものではありません。".repeat(3)}<br><br>第99条 最後までお読みいただきありがとうございました。</div>
+        <label class="row small"><input type="checkbox" id="agree" disabled style="width:auto"> 利用規約に同意する（最後までスクロールすると選べます）</label><span class="err" data-e="agree"></span></div>
+      <div class="f"><div class="cap-h">「ふとん」をすべて選択してください<br><span class="small">しきぶとん・かけぶとんを含みます。ざぶとんは含みません。</span></div>
+        <div class="cap" id="cap">${tiles.map((t,i)=>`<button type="button" class="tile" data-i="${i}">${t}</button>`).join("")}</div><span class="err" data-e="cap"></span></div>
+      <button class="btn big">確認画面へ</button>
+    </form>
+  </div>`;
+  const sel=new Set();let submits=0;
+  $("#auto").onclick=()=>{$("#nm").value="山田 花子";$("#em").value="hanako@example.com";$("#tel").value="０９０－１２３４－５６７８";toast("自動入力した（全角で）");};
+  const len=()=>{$("#len").textContent=$("#body").value.length+" / 100";};
+  $("#body").oninput=len;
+  $("#tpl").onclick=()=>{$("#body").value=template;len();};
+  $("#terms").onscroll=e=>{const t=e.target;if(t.scrollTop+t.clientHeight>=t.scrollHeight-4)$("#agree").disabled=false;};
+  $("#cap").querySelectorAll(".tile").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);b.classList.toggle("sel");});
+  $("#fm").onsubmit=e=>{
+    e.preventDefault();
+    const E={};const v=id=>$("#"+id).value.trim();
+    if(!v("nm"))E.nm="お名前を入力してください";
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v("em")))E.em="メールアドレスの形式が正しくありません";
+    if(!v("tel"))E.tel="電話番号を入力してください";
+    else if(/[０-９－ー]/.test(v("tel")))E.tel="全角文字が含まれています。半角数字で入力してください";
+    else if(!/^\d{10,11}$/.test(v("tel")))E.tel="ハイフンを含めず、半角数字10〜11桁で入力してください";
+    if(!v("cat"))E.cat="お問い合わせ種別を選択してください";
+    else if(v("cat")!=="その他（製品の不具合）")E.cat="選択された種別では製品の不具合を受け付けておりません";
+    const L=$("#body").value.length;
+    if(L<20)E.body="20文字以上で入力してください";else if(L>100)E.body=`100文字以内で入力してください（現在${L}文字）`;
+    if(!$("#agree").checked)E.agree="利用規約への同意が必要です";
+    if(sel.size!==ok.size||[...ok].some(i=>!sel.has(i)))E.cap="選択が正しくありません。もう一度お試しください";
+    app.querySelectorAll("[data-e]").forEach(s=>s.textContent=E[s.dataset.e]||"");
+    const n=Object.keys(E).length;
+    if(n){irr(Math.min(4+n*2,14),`入力エラーが${n}件`);app.querySelector(".err:not(:empty)").previousElementSibling?.scrollIntoView({behavior:"smooth",block:"center"});return;}
+    submits++;
+    if(submits===1){$("#body").value="";len();irr(12,"セッションの有効期限が切れました。内容を再入力してください");
+      $('[data-e="body"]').textContent="セッションの有効期限（3分）が切れたため、お問い合わせ内容が消去されました";return;}
+    toast("送信完了！");go(4);
+  };
+}
+
+/* ---------- 4. Mail ---------- */
+function s4(){
+  const mails={
+    auto:{box:"in",from:"noreply@mirai-living.example",sub:"【自動返信】お問い合わせを受け付けました",read:false,
+      body:`山田 花子 様\n\nお問い合わせいただき、ありがとうございます。\n担当者より3〜5営業日以内にご連絡いたします。\n\n※本メールは送信専用アドレスからお送りしています。\n　ご返信いただいてもお答えできません。`,reply:true},
+  };
+  let day=0,box="in",open="auto";
+  const promos=[["promo1","【タタムンZ】今だけ！ねこ用ベッド 50%OFF"],["promo2","アンケートご協力のお願い（所要時間：約40分）"],["promo3","【重要】サポート品質向上のお知らせ"]];
+  app.innerHTML=mission("サポートからの返事を見つけ出せ")+`
+  <div class="site">
+    <div class="site-h"><span class="logo">メール<small>hanako@example.com</small></span></div>
+    <div class="mail"><nav class="mbox" id="mbox"></nav><div><div class="mlist" id="mlist"></div><div class="mview" id="mview"></div></div></div>
+    <div class="daybar"><span id="day">経過：0営業日</span><button class="btn ghost" id="wait">1営業日待つ</button></div>
+  </div>`;
+  function render(){
+    const list=Object.entries(mails);
+    const count=b=>list.filter(([,m])=>m.box===b&&!m.read).length;
+    $("#mbox").innerHTML=[["in","受信トレイ"],["promo","プロモーション"],["spam","迷惑メール"]].map(([k,n])=>`<button class="${box===k?"on":""}" data-b="${k}"><span>${n}</span><span>${count(k)||""}</span></button>`).join("");
+    $("#mbox").querySelectorAll("button").forEach(b=>b.onclick=()=>{box=b.dataset.b;open=null;render();});
+    const inBox=list.filter(([,m])=>m.box===box).reverse();
+    $("#mlist").innerHTML=inBox.length?inBox.map(([k,m])=>`<button class="mi ${m.read?"read":""}" data-k="${k}"><span class="s">${esc(m.sub)}</span><span class="fr">${esc(m.from)}</span></button>`).join(""):`<p class="muted small" style="padding:14px">メールはありません</p>`;
+    $("#mlist").querySelectorAll(".mi").forEach(b=>b.onclick=()=>{open=b.dataset.k;render();});
+    const m=open&&mails[open];
+    if(!m){$("#mview").innerHTML="";return;}
+    const first=!m.read;m.read=true;
+    $("#mview").innerHTML=`<h3>${esc(m.sub)}</h3><p class="small muted">差出人：${esc(m.from)}</p><pre>${esc(m.body)}</pre>${m.extra||""}
+      ${m.reply?`<div class="row"><button class="btn ghost" id="rep">返信する</button></div>`:""}`;
+    $("#mlist").querySelector(`[data-k="${open}"]`)?.classList.add("read");
+    $("#rep")&&($("#rep").onclick=()=>{
+      if(mails.bounce){irr(8,"また戻ってきた");return;}
+      mails.bounce={box:"in",from:"MAILER-DAEMON",sub:"Undelivered Mail Returned to Sender",read:false,body:"このメールは配信できませんでした。\n宛先 noreply@mirai-living.example は存在しません。"};
+      irr(10,"送信専用アドレスに返信してしまった");box="in";open=null;render();
+    });
+    if(open==="answer"){
+      $("#faqlink").onclick=()=>irr(12,"よくある質問に戻されかけた");
+      $("#tel").onclick=()=>{toast("電話をかける…");go(5);};
+    }
+    if(first&&open.startsWith("promo"))irr(3,"関係ないメールを読んでしまった");
+  }
+  $("#wait").onclick=()=>{
+    day++;$("#day").textContent=`経過：${day}営業日`;irr(4,"待つのはつらい");
+    if(promos[day-1]){const [k,s]=promos[day-1];mails[k]={box:day===2?"in":"promo",from:"news@mirai-living.example",sub:s,read:false,body:"いつもミライリビングをご利用いただきありがとうございます。\n（以下、広告）"};}
+    if(day===3){
+      mails.answer={box:"spam",from:"support@mirai-living.example",sub:"Re: お問い合わせの件",read:false,
+        body:"山田 花子 様\n\nお問い合わせありがとうございます。\nいただいた内容につきましては、よくある質問に掲載がございますので、そちらをご確認ください。\n\n今後ともミライリビングをよろしくお願いいたします。",
+        extra:`<div class="row"><button class="btn ghost" id="faqlink">よくある質問を見る</button></div>
+          <p class="tiny">※本メールで解決しない場合は、サポートダイヤル <button class="lnk" id="tel">0120-000-XXX</button>（平日10:00〜17:00）までお電話ください。その際、受付番号 <b>${S.ref}</b> をお伝えください。受付番号は本メールにのみ記載されています。</p>`};
+      toast("何かが届いた…気がする");
+    }
+    if(day>3&&!mails.answer.read)irr(4,"返事が来ない……どこかに埋もれている？");
+    render();
+  };
+  render();
+}
+
+/* ---------- 5. Phone IVR ---------- */
+function s5(){
+  app.innerHTML=mission("自動音声を突破してオペレーターにつなげ")+`
+  <div class="phone">
+    <div class="screen" id="scr"></div>
+    <div class="buf" id="buf"></div>
+    <div class="keys" id="keys">${["1","2","3","4","5","6","7","8","9","*","0","#"].map(k=>`<button class="key" data-k="${k}" aria-label="${k}">${k}</button>`).join("")}</div>
+  </div>`;
+  let state="main",buf="",pos=0,offered=false,secs=0;
+  const st=()=>`<div class="st"><span>通話中</span><span id="ct">${String(Math.floor(secs/60)).padStart(2,"0")}:${String(secs%60).padStart(2,"0")}</span></div>`;
+  S.timers.push(setInterval(()=>{secs++;const c=$("#ct");if(c)c.textContent=String(Math.floor(secs/60)).padStart(2,"0")+":"+String(secs%60).padStart(2,"0");},1000));
+  const show=html=>{$("#scr").innerHTML=st()+html;};
+  const menus={
+    main:"お電話ありがとうございます。ミライリビングです。<br>製品のご購入は「1」、配送状況は「2」、キャンペーンは「3」、その他のお問い合わせは「4」を押してください。<br>もう一度お聞きになるには「*」。",
+    sub:"その他のお問い合わせですね。<br>製品の使い方は「1」、修理のご依頼は「2」、製品の不具合は「3」、前のメニューに戻るには「9」を押してください。",
+    ref:"受付番号の数字4桁を入力し、最後に「#」を押してください。",
+  };
+  show(menus.main);
+  function later(fn,ms){S.timers.push(setTimeout(fn,ms));}
+  function bounce(msg,n,why,to){state="wait";show(msg);irr(n,why);later(()=>{state=to;show(menus[to]);},1600);}
+  function queue(){
+    state="queue";pos=12+Math.floor(Math.random()*4);
+    const ads=["ただいま大変混み合っております。","ウェブサイトのAIチャットなら24時間ご利用いただけます。","よくある質問もぜひご活用ください。","この通話は品質向上のため録音されています。","♪〜（エリーゼのために）〜♪"];
+    let a=0;
+    const draw=()=>show(`オペレーターにおつなぎします。<div class="q">${pos}</div><p style="text-align:center">あなたの順番：${pos}番目</p><p>${ads[a%ads.length]}</p>`);
+    draw();
+    S.timers.push(setInterval(()=>{
+      if(state!=="queue")return;
+      a++;
+      const r=Math.random();
+      if(r<.68)pos--;else if(r<.78){pos++;toast("順番が1つ戻った……なぜ");}
+      if(a%3===0)irr(2,"保留音がループしている");
+      if(!offered&&pos<=5){offered=true;state="cb";show("お待たせしております。<br>折り返しのお電話をご希望の場合は「1」、このままお待ちいただく場合は「2」を押してください。");return;}
+      if(pos<=0){state="done";show("おつなぎしています……");later(()=>{toast("つながった！");go(6);},1200);return;}
+      draw();
+    },1000));
+  }
+  function press(k){
+    if(state==="main"){
+      if(k==="1")bounce("製品のご購入はオンラインストアが便利です。",6,"購入窓口に来てしまった","main");
+      else if(k==="2")bounce("配送状況は追跡番号でご確認いただけます。",6,"配送の話じゃない","main");
+      else if(k==="3")bounce("ただいま、ねこ用ベッド半額キャンペーン中です！",6,"キャンペーンの案内を聞かされた","main");
+      else if(k==="4"){state="sub";show(menus.sub);}
+      else if(k==="*")show(menus.main);
+      else if(k==="0")bounce("オペレーター直通サービスは2024年に終了いたしました。",5,"裏技は塞がれていた","main");
+      else bounce("入力が確認できませんでした。",3,"","main");
+    }else if(state==="sub"){
+      if(k==="1")bounce("使い方は公式サイトの動画をご覧ください。",6,"動画に誘導された","sub");
+      else if(k==="2")bounce("修理のご依頼には保証書番号（16桁）が必要です。",6,"保証書がどこにもない","sub");
+      else if(k==="3"){state="ref";buf="";$("#buf").textContent="";show(menus.ref);}
+      else if(k==="9"){state="main";show(menus.main);}
+      else bounce("入力が確認できませんでした。",3,"","sub");
+    }else if(state==="ref"){
+      if(/\d/.test(k)&&buf.length<8){buf+=k;$("#buf").textContent=buf;}
+      else if(k==="#"){
+        const b=buf;buf="";$("#buf").textContent="";
+        if(b===S.ref){queue();}
+        else bounce(`入力された番号「${b||"なし"}」は確認できませんでした。`,8,"受付番号が違う（メールに書いてあった）","ref");
+      }else if(k==="*"){buf="";$("#buf").textContent="";}
+    }else if(state==="cb"){
+      if(k==="1"){state="wait";show("折り返しのご予約を承りました。3〜5営業日以内にご連絡いたします。<br>……と思ったら、もう一度並び直しになった。");irr(20,"折り返し予約で列の最後尾へ");later(()=>{offered=false;queue();},2200);}
+      else if(k==="2"){state="queue";show(`このままお待ちください。<div class="q">${pos}</div>`);}
+    }
+  }
+  $("#keys").querySelectorAll(".key").forEach(b=>b.onclick=()=>press(b.dataset.k));
+}
+
+/* ---------- 6. Human ---------- */
+function s6(){
+  app.innerHTML=mission("人間と話せ")+`
+  <div class="site">
+    <div class="site-h"><span class="logo">通話中<small>サポートセンター 佐藤</small></span><span class="small muted">本物の人間</span></div>
+    <div class="site-b"><div class="chat" id="chat"></div><div class="row" id="opts"></div></div>
+  </div>`;
+  const chat=$("#chat");
+  const say=(txt,me)=>{const d=document.createElement("div");d.className="msg "+(me?"me":"bot");d.innerHTML=(me?"":`<span class="who">佐藤</span>`)+esc(txt);chat.appendChild(d);chat.scrollTop=chat.scrollHeight;};
+  const opts=(list)=>{$("#opts").innerHTML=list.map(([t])=>`<button class="chip">${t}</button>`).join("");
+    $("#opts").querySelectorAll("button").forEach((b,i)=>b.onclick=()=>{$("#opts").innerHTML="";say(list[i][0],true);S.timers.push(setTimeout(list[i][1],800));});};
+  say("お待たせいたしました。ミライリビング サポートセンターの佐藤でございます。");
+  const solve=()=>{say("大変申し訳ございません。それは「ねこモード」が誤って有効になっています。本体裏のスイッチを『ふとん』に戻してください。\nお詫びに交換品を明日お届けします。");
+    opts([["ありがとうございます！",()=>{say("こちらこそ、長らくお待たせいたしました。猫ちゃんにもよろしくお伝えください。");S.timers.push(setTimeout(clear,1400));}]]);};
+  const main=()=>opts([
+    ["タタムンZが猫をたたもうとします",solve],
+    ["……人間の方ですか？",()=>{say("はい、人間でございます（笑）。よく聞かれます。");S.timers.push(setTimeout(()=>opts([["タタムンZが猫をたたもうとします",solve]]),600));}],
+    ["ここまで来るの大変だったんですけど",()=>{say("ご不便をおかけし申し訳ございません。社内でも改善を検討しております……（3年前から）");irr(3,"検討中が長い");S.timers.push(setTimeout(()=>opts([["タタムンZが猫をたたもうとします",solve]]),600));}],
+  ]);
+  S.timers.push(setTimeout(main,700));
+}
+
+/* ---------- Endings ---------- */
+function clear(){
+  clearTimers();S.t1=Date.now();clock();
+  const t=Math.round((S.t1-S.t0)/1000);
+  const score=Math.max(0,10000-t*15-S.irr*60-S.used*300);
+  const [rank,title]=score>=7000?["S","伝説のサポート突破者"]:score>=5000?["A","鋼のメンタル"]:score>=3000?["B","よくいるお客様"]:["C","ギリギリ人間"];
+  const stars=S.irr<25?5:S.irr<45?4:S.irr<65?3:S.irr<85?2:1;
+  S.stage=7;hud();
+  app.innerHTML=`<div class="site"><div class="end">
+    <p class="muted small">CLEAR</p><h1>人間にたどり着いた</h1>
+    <p>猫は無事。タタムンZは今日もふとんをたたんでいる。</p>
+    <dl class="stats"><div><dt>ランク</dt><dd>${rank}</dd></div><div><dt>タイム</dt><dd>${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}</dd></div><div><dt>イライラ</dt><dd>${S.irr}</dd></div></dl>
+    <p><b>称号：${title}</b>（スコア ${score}）</p>
+    <p class="muted">あなたが書いたレビュー：${"★".repeat(stars)}${"☆".repeat(5-stars)}</p>
+    <button class="btn big" id="again">もう一度挑戦する</button></div></div>`;
+  $("#again").onclick=restart;
+}
+function gameOver(){
+  clearTimers();S.t1=Date.now();clock();const at=STAGES[S.stage-1];S.stage=8;hud();
+  app.innerHTML=`<div class="site"><div class="end">
+    <p class="muted small">GAME OVER</p><h1>心が折れた</h1>
+    <p>「${at}」で力尽きた。<br>星1のレビューを書いて、猫と一緒にふて寝した。</p>
+    <p class="muted">★☆☆☆☆「サポートに人間がいるのか不明」</p>
+    <button class="btn big" id="again">もう一度挑戦する</button></div></div>`;
+  $("#again").onclick=restart;
+}
+function restart(){clearTimers();S=fresh();$("#clock").textContent="00:00";go(0);}
+
+go(0);
+</script>
+</body>
+</html>
